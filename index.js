@@ -25,15 +25,15 @@ const emailTransporter = nodemailer.createTransport({
     secure: true,
     port: 465,
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: "mohitdavar2004@gmail.com",
+        pass: "pzfxkfaniqxkqecq"
     }
 });
 
 // Function to calculate linear trend (increase, decrease, or stable)
 function getFuelTrend(data) {
     const n = data.length;
-    if (n < 2) return 0; // Not enough data to establish a trend
+    if (n < 2) return 0;
 
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
 
@@ -49,6 +49,7 @@ function getFuelTrend(data) {
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     return slope > 0 ? 1 : slope < 0 ? -1 : 0;
 }
+
 // Helper function to calculate the distance between two coordinates
 function calculateDistance(coord1, coord2) {
     const dx = coord1.longitude - coord2.longitude;
@@ -74,7 +75,7 @@ async function sendEmailAlert(subject, message) {
 }
 
 // Function to handle fuel trend and send alerts
-function analyzeFuelData(longitude, latitude, currentFuel) {
+function analyzeFuelData(longitude, latitude) {
     const trend = getFuelTrend(fuelDataArray);
     const locationDistance = calculateDistance({ longitude, latitude }, targetLocation);
 
@@ -82,6 +83,7 @@ function analyzeFuelData(longitude, latitude, currentFuel) {
         console.log(`Fuel Increase Detected. Fuel level rising at coordinates (${longitude}, ${latitude}).`);
         alertStatus.rising = true;
     } else if (trend < 0 && locationDistance > MAX_VARIATION_DISTANCE && !alertStatus.leaking) {
+        console.log(`Fuel Leak Detected. Fuel level decreasing at coordinates (${longitude}, ${latitude}).`);
         sendEmailAlert("Fuel Leak Detected", `Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
         alertStatus.leaking = true;
     } else if (trend < 0 && locationDistance <= MAX_VARIATION_DISTANCE && !alertStatus.draining) {
@@ -97,8 +99,8 @@ app.post('/api/fuel-data', (req, res) => {
 
     if (fuel != null && longitude != null && latitude != null) {
         fuelDataArray.push(fuel);
-        console.log("Fuel Data: ", [ fuel, coordinates ])
-        analyzeFuelData(longitude, latitude, fuel);
+        console.log("Fuel Data: ", [fuel, coordinates]);
+        analyzeFuelData(longitude, latitude);
         res.status(200).send("Fuel data received successfully");
     } else {
         res.status(400).send("Invalid fuel data");
