@@ -1,69 +1,109 @@
 const express = require('express');
 const nodemailer = require("nodemailer");
+const dotenv = require("dotenv");
 
-const dotenv = require("dotenv")
-dotenv.config()
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-const tempArray = [];
-let sentEmail = false
+// Configuration for coordinates and thresholds
+const targetLocation = { longitude: 60, latitude: 60 };
+const MAX_VARIATION_DISTANCE = 5;
+const fuelDataArray = [];
 
-const auth = nodemailer.createTransport({
+const alertStatus = {
+    rising: false,
+    leaking: false,
+    draining: false
+};
+
+// Setup nodemailer transport
+const emailTransporter = nodemailer.createTransport({
     service: "gmail",
     secure: true,
     port: 465,
     auth: {
-        user: "mohitdavar2004@gmail.com",
-        pass: "pzfxkfaniqxkqecq"
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
-const mailOptions = {
-    from: 'mohitdavar2004@gmail.com',
-    to: 'davarrajni@gmail.com',
-    subject: 'Fuel Leak Detected',
-    text: 'There seems to be a fuel leak. Please check immediately.'
-};
+// Function to calculate linear trend (increase, decrease, or stable)
+function getFuelTrend(data) {
+    const n = data.length;
+    if (n < 2) return 0; // Not enough data to establish a trend
 
-function checKLeak() {
-    const MIN_DATA_POINTS = 5;
-    if (tempArray.length >= MIN_DATA_POINTS) {
-        let overleak = true;
-        for (let i = 0; i < tempArray.length - 1; i++) {
-            if (tempArray[i + 1] >= tempArray[i]) {
-                overleak = false;
-                break;
-            }
-        }
-        if (overleak && !sentEmail) {
-            auth.sendMail(mailOptions, (error, emailResponse) => {
-                if (error) console.log("Error in Sending Email.");
-                console.log("Success! Email sent.");
-            });
-            sentEmail = true;
-        }
-        tempArray.shift();
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+    for (let i = 0; i < n; i++) {
+        const x = i + 1;
+        const y = data[i];
+        sumX += x;
+        sumY += y;
+        sumXY += x * y;
+        sumXX += x * x;
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    return slope > 0 ? 1 : slope < 0 ? -1 : 0;
+}
+// Helper function to calculate the distance between two coordinates
+function calculateDistance(coord1, coord2) {
+    const dx = coord1.longitude - coord2.longitude;
+    const dy = coord1.latitude - coord2.latitude;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Function to send email alerts
+async function sendEmailAlert(subject, message) {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.ALERT_EMAIL,
+        subject,
+        text: message
+    };
+
+    try {
+        await emailTransporter.sendMail(mailOptions);
+        console.log(`Alert: ${subject}`);
+    } catch (error) {
+        console.error("Error sending email:", error);
     }
 }
 
-function handleFuelData(req, res) {
-    const FuelData = req.body;
+// Function to handle fuel trend and send alerts
+function analyzeFuelData(longitude, latitude, currentFuel) {
+    const trend = getFuelTrend(fuelDataArray);
+    const locationDistance = calculateDistance({ longitude, latitude }, targetLocation);
 
-    if (FuelData && FuelData.fuel != null) {
-        tempArray.push(FuelData.fuel);
-        console.log("Received Fuel Data:", FuelData);
-        console.log("Fuel Array:", tempArray);
-        checKLeak();
+    if (trend > 0 && !alertStatus.rising) {
+        console.log(`Fuel Increase Detected. Fuel level rising at coordinates (${longitude}, ${latitude}).`);
+        alertStatus.rising = true;
+    } else if (trend < 0 && locationDistance > MAX_VARIATION_DISTANCE && !alertStatus.leaking) {
+        sendEmailAlert("Fuel Leak Detected", `Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
+        alertStatus.leaking = true;
+    } else if (trend < 0 && locationDistance <= MAX_VARIATION_DISTANCE && !alertStatus.draining) {
+        console.log(`Fuel Drain Detected. Fuel draining at target location (${longitude}, ${latitude}).`);
+        alertStatus.draining = true;
+    }
+}
+
+// Endpoint to receive fuel data
+app.post('/api/fuel-data', (req, res) => {
+    const { fuel, coordinates } = req.body;
+    const { longitude, latitude } = coordinates;
+
+    if (fuel != null && longitude != null && latitude != null) {
+        fuelDataArray.push(fuel);
+        console.log("Fuel Data: ", [ fuel, coordinates ])
+        analyzeFuelData(longitude, latitude, fuel);
         res.status(200).send("Fuel data received successfully");
     } else {
-        res.status(400).send("Invalid Fuel data");
+        res.status(400).send("Invalid fuel data");
     }
-}
-
-app.post('/api/v1/integrations/http/fdb69a3a-93fc-7301-c8be-a80f831080ea', handleFuelData);
+});
 
 app.get("/", (req, res) => {
     res.send("Home");
