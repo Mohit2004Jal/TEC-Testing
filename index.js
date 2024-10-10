@@ -29,23 +29,20 @@ const mailOptions = {
 };
 
 function checKLeak() {
-    if (tempArray.length == 5) {
+    const MIN_DATA_POINTS = 5;
+    if (tempArray.length >= MIN_DATA_POINTS) {
         let overleak = true;
-
-        for (let i = 0; i < 4; i++) {
-            if (tempArray[i + 1] > tempArray[i]) {
+        for (let i = 0; i < tempArray.length - 1; i++) {
+            if (tempArray[i + 1] >= tempArray[i]) {
                 overleak = false;
                 break;
             }
         }
-
         if (overleak && !sentEmail) {
             auth.sendMail(mailOptions, (error, emailResponse) => {
-                if (error)
-                    throw error;
-                console.log("Success!")
-                res.end()
-            })
+                if (error) console.log("Error in Sending Email.");
+                console.log("Success! Email sent.");
+            });
             sentEmail = true;
         }
         tempArray.shift();
@@ -59,9 +56,7 @@ function handleFuelData(req, res) {
         tempArray.push(FuelData.fuel);
         console.log("Received Fuel Data:", FuelData);
         console.log("Fuel Array:", tempArray);
-
         checKLeak();
-
         res.status(200).send("Fuel data received successfully");
     } else {
         res.status(400).send("Invalid Fuel data");

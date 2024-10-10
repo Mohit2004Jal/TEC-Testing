@@ -41,7 +41,7 @@ function generateContinuously() {
             latitude: randomY
         }
         PostData(data, coordinates)
-    }, 1000);
+    }, 10000);
 }
 
 generateContinuously();
