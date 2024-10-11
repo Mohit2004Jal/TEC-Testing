@@ -7,12 +7,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-const targetLocation = { longitude: 30.886188, latitude: 75.929028 };
+const targetLocation = { latitude: 30.886188, longitude: 75.929028 };
 const MAX_VARIATION_DISTANCE = 50;
 
 // Object to store fuel data and alert statuses for each device
 const deviceData = {};
-
+let recentData = []
 const emailTransporter = nodemailer.createTransport({
     service: "gmail",
     secure: true,
@@ -84,7 +84,7 @@ function getFuelTrend(data) {
     if (data.length < REQUIRED_LENGTH) {
         return 0;
     }
-    const recentData = data.slice(-REQUIRED_LENGTH);
+    recentData = data.slice(-REQUIRED_LENGTH);
 
     // Check if strictly increasing
     let isIncreasing = true;
@@ -136,18 +136,18 @@ function analyzeFuelData(deviceId, longitude, latitude) {
 
     if (trend > 0 && !alertStatus.rising) {
         console.log(`Device ${deviceId}: Fuel Increase Detected at (${longitude}, ${latitude}).`);
-        sendEmailAlert("Fuel Increase Detected", `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`);
+        sendEmailAlert("Fuel Increase Detected", `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}). Recent-Value: ${recentData.at(0)}`);
         alertStatus.rising = true;
         alertStatus.leaking = false;
         alertStatus.draining = false;
     } else if (trend < 0 && locationDistance > MAX_VARIATION_DISTANCE && !alertStatus.leaking) {
         console.log(`Device ${deviceId}: Fuel Leak Detected at (${longitude}, ${latitude}).`);
-        sendEmailAlert("Fuel Leak Detected", `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
+        sendEmailAlert("Fuel Leak Detected", `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location. Recent-Value: ${recentData.at(0)}`);
         alertStatus.leaking = true;
         alertStatus.rising = false;
     } else if (trend < 0 && locationDistance <= MAX_VARIATION_DISTANCE && !alertStatus.draining) {
         console.log(`Device ${deviceId}: Fuel Drain Detected at (${longitude}, ${latitude}).`);
-        sendEmailAlert("Fuel Drain Detected", `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`);
+        sendEmailAlert("Fuel Drain Detected", `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}). Recent-Value: ${recentData.at(0)}`);
         alertStatus.draining = true;
         alertStatus.rising = false;
     }
