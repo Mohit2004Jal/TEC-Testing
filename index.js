@@ -136,18 +136,18 @@ function analyzeFuelData(deviceId, longitude, latitude) {
 
     if (trend > 0 && !alertStatus.rising) {
         console.log(`Device ${deviceId}: Fuel Increase Detected at (${longitude}, ${latitude}).`);
-        // sendEmailAlert("Fuel Increase Detected", `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`);
+        sendEmailAlert("Fuel Increase Detected", `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`);
         alertStatus.rising = true;
         alertStatus.leaking = false;
         alertStatus.draining = false;
     } else if (trend < 0 && locationDistance > MAX_VARIATION_DISTANCE && !alertStatus.leaking) {
         console.log(`Device ${deviceId}: Fuel Leak Detected at (${longitude}, ${latitude}).`);
-        // sendEmailAlert("Fuel Leak Detected", `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
+        sendEmailAlert("Fuel Leak Detected", `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
         alertStatus.leaking = true;
         alertStatus.rising = false;
     } else if (trend < 0 && locationDistance <= MAX_VARIATION_DISTANCE && !alertStatus.draining) {
         console.log(`Device ${deviceId}: Fuel Drain Detected at (${longitude}, ${latitude}).`);
-        // sendEmailAlert("Fuel Drain Detected", `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`);
+        sendEmailAlert("Fuel Drain Detected", `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`);
         alertStatus.draining = true;
         alertStatus.rising = false;
     }
@@ -157,7 +157,17 @@ app.post('/api/fuel-data/:id', (req, res) => {
     const deviceId = req.params.id;
     // const { fuel, coordinates } = req.body;
     // const { longitude, latitude } = coordinates;
-    const {fuel,longitude,latitude} = req.body
+    const { fuel, longitude, latitude } = req.body
+    switch (deviceId) {
+        case "busb":
+            fuel = fuel * 137
+            break;
+        case "busc":
+            fuel = fuel * 187.6
+            break;
+        default:
+            break;
+    }
 
     if (fuel != null && longitude != null && latitude != null) {
         // Initialize data for the device if not already present
@@ -174,7 +184,7 @@ app.post('/api/fuel-data/:id', (req, res) => {
 
         // Add fuel data for this device
         deviceData[deviceId].fuelDataArray.push(fuel);
-        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude , longitude });
+        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude, longitude });
 
         // Analyze fuel data for this device
         analyzeFuelData(deviceId, longitude, latitude);
