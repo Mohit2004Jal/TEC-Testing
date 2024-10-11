@@ -125,9 +125,9 @@ function analyzeFuelData(deviceId, longitude, latitude) {
 // Endpoint to receive fuel data for a specific device by ID
 app.post('/api/fuel-data/:id', (req, res) => {
     const deviceId = req.params.id;
-    const { fuel, coordinates } = req.body;
-    const { longitude, latitude } = coordinates;
-    // const {fuel,longitude,latitude} = req.body
+    // const { fuel, coordinates } = req.body;
+    // const { longitude, latitude } = coordinates;
+    const {fuel,longitude,latitude} = req.body
 
     if (fuel != null && longitude != null && latitude != null) {
         // Initialize data for the device if not already present
