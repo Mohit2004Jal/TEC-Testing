@@ -1,25 +1,18 @@
 const express = require('express');
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
-
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configuration for coordinates and thresholds
-const targetLocation = { longitude: 60, latitude: 60 };
-const MAX_VARIATION_DISTANCE = 5;
-const fuelDataArray = [];
+const targetLocation = { longitude: 30.886188, latitude: 75.929028 };
+const MAX_VARIATION_DISTANCE = 50;
 
-const alertStatus = {
-    rising: false,
-    leaking: false,
-    draining: false
-};
+// Object to store fuel data and alert statuses for each device
+const deviceData = {};
 
-// Setup nodemailer transport
 const emailTransporter = nodemailer.createTransport({
     service: "gmail",
     secure: true,
@@ -30,24 +23,58 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
-// Function to calculate linear trend (increase, decrease, or stable)
+
 function getFuelTrend(data) {
-    const n = data.length;
-    if (n < 2) return 0;
+    const REQUIRED_LENGTH = 10;
+    if (data.length < REQUIRED_LENGTH) return 0;
 
-    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    // Calculate moving average to smooth out noise
+    const smoothedData = movingAverage(data, 3); // Window size of 3
+    // Ensure we have enough data after smoothing
+    if (smoothedData.length < REQUIRED_LENGTH) return 0;
+    // Consider only the last ten smoothed values
+    const recentData = smoothedData.slice(-REQUIRED_LENGTH);
+    // Check for strictly increasing or decreasing trend
+    let increasingCount = 0;
+    let decreasingCount = 0;
 
-    for (let i = 0; i < n; i++) {
-        const x = i + 1;
-        const y = data[i];
-        sumX += x;
-        sumY += y;
-        sumXY += x * y;
-        sumXX += x * x;
+    for (let i = 1; i < recentData.length; i++) {
+        if (recentData[i] > recentData[i - 1]) {
+            increasingCount++;
+        } else if (recentData[i] < recentData[i - 1]) {
+            decreasingCount++;
+        }
     }
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    return slope > 0 ? 1 : slope < 0 ? -1 : 0;
+    // Define a threshold to determine trend, e.g., at least 80% increasing or decreasing
+    const threshold = 0.8 * (REQUIRED_LENGTH - 1); // 8 out of 9
+
+    if (increasingCount >= threshold) {
+        // Remove the oldest data point to maintain the window size
+        data.shift();
+        console.log("Array after shift: ", data);
+        return 1; // Increasing
+    } else if (decreasingCount >= threshold) {
+        // Remove the oldest data point to maintain the window size
+        data.shift();
+        console.log("Array after shift: ", data);
+        return -1; // Decreasing
+    } else {
+        // Remove the oldest data point to maintain the window size
+        data.shift();
+        console.log("Array after shift: ", data);
+        return 0; // Stable or no clear trend
+    }
+}
+function movingAverage(data, windowSize) {
+    if (windowSize <= 0) throw new Error("Window size must be positive");
+    const averages = [];
+    for (let i = 0; i <= data.length - windowSize; i++) {
+        const window = data.slice(i, i + windowSize);
+        const avg = window.reduce((sum, val) => sum + val, 0) / windowSize;
+        averages.push(avg);
+    }
+    return averages;
 }
 
 // Helper function to calculate the distance between two coordinates
@@ -56,12 +83,10 @@ function calculateDistance(coord1, coord2) {
     const dy = coord1.latitude - coord2.latitude;
     return Math.sqrt(dx * dx + dy * dy);
 }
-
-// Function to send email alerts
 async function sendEmailAlert(subject, message) {
     const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: process.env.ALERT_EMAIL,
+        from: "mohitdavar2004@gmail.com",
+        to: "davarrajni@gmail.com",
         subject,
         text: message
     };
@@ -73,35 +98,57 @@ async function sendEmailAlert(subject, message) {
         console.error("Error sending email:", error);
     }
 }
-
-// Function to handle fuel trend and send alerts
-function analyzeFuelData(longitude, latitude) {
+// Function to handle fuel trend and send alerts for a specific device
+function analyzeFuelData(deviceId, longitude, latitude) {
+    const { fuelDataArray, alertStatus } = deviceData[deviceId];
     const trend = getFuelTrend(fuelDataArray);
     const locationDistance = calculateDistance({ longitude, latitude }, targetLocation);
 
     if (trend > 0 && !alertStatus.rising) {
-        console.log(`Fuel Increase Detected. Fuel level rising at coordinates (${longitude}, ${latitude}).`);
+        console.log(`Device ${deviceId}: Fuel Increase Detected at (${longitude}, ${latitude}).`);
+        // sendEmailAlert("Fuel Increase Detected", `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`);
         alertStatus.rising = true;
+        alertStatus.leaking = false;
+        alertStatus.draining = false;
     } else if (trend < 0 && locationDistance > MAX_VARIATION_DISTANCE && !alertStatus.leaking) {
-        console.log(`Fuel Leak Detected. Fuel level decreasing at coordinates (${longitude}, ${latitude}).`);
-        sendEmailAlert("Fuel Leak Detected", `Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
+        console.log(`Device ${deviceId}: Fuel Leak Detected at (${longitude}, ${latitude}).`);
+        // sendEmailAlert("Fuel Leak Detected", `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`);
         alertStatus.leaking = true;
+        alertStatus.rising = false;
     } else if (trend < 0 && locationDistance <= MAX_VARIATION_DISTANCE && !alertStatus.draining) {
-        console.log(`Fuel Drain Detected. Fuel draining at target location (${longitude}, ${latitude}).`);
+        console.log(`Device ${deviceId}: Fuel Drain Detected at (${longitude}, ${latitude}).`);
+        // sendEmailAlert("Fuel Drain Detected", `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`);
         alertStatus.draining = true;
+        alertStatus.rising = false;
     }
 }
-
-// Endpoint to receive fuel data
-app.post('/api/fuel-data', (req, res) => {
+// Endpoint to receive fuel data for a specific device by ID
+app.post('/api/fuel-data/:id', (req, res) => {
+    const deviceId = req.params.id;
     const { fuel, coordinates } = req.body;
     const { longitude, latitude } = coordinates;
+    // const {fuel,longitude,latitude} = req.body
 
     if (fuel != null && longitude != null && latitude != null) {
-        fuelDataArray.push(fuel);
-        console.log("Fuel Data: ", [fuel, coordinates]);
-        analyzeFuelData(longitude, latitude);
-        res.status(200).send("Fuel data received successfully");
+        // Initialize data for the device if not already present
+        if (!deviceData[deviceId]) {
+            deviceData[deviceId] = {
+                fuelDataArray: [],
+                alertStatus: {
+                    rising: false,
+                    leaking: false,
+                    draining: false
+                }
+            };
+        }
+
+        // Add fuel data for this device
+        deviceData[deviceId].fuelDataArray.push(fuel);
+        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, coordinates });
+
+        // Analyze fuel data for this device
+        analyzeFuelData(deviceId, longitude, latitude);
+        res.status(200).send(`Fuel data received successfully for device ${deviceId}`);
     } else {
         res.status(400).send("Invalid fuel data");
     }
@@ -111,6 +158,6 @@ app.get("/", (req, res) => {
     res.send("Home");
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Server running on port ${process.env.PORT}`);
+app.listen(process.env.PORT || 8080, () => {
+    console.log(`Server running on port ${process.env.PORT || 8080}`);
 });
