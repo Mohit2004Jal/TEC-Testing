@@ -144,7 +144,7 @@ app.post('/api/fuel-data/:id', (req, res) => {
 
         // Add fuel data for this device
         deviceData[deviceId].fuelDataArray.push(fuel);
-        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, coordinates });
+        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude , longitude });
 
         // Analyze fuel data for this device
         analyzeFuelData(deviceId, longitude, latitude);
