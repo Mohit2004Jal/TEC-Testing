@@ -157,7 +157,7 @@ app.post('/api/fuel-data/:id', (req, res) => {
     const deviceId = req.params.id;
     // const { fuel, coordinates } = req.body;
     // const { longitude, latitude } = coordinates;
-    const { fuel, longitude, latitude } = req.body
+    let { fuel, longitude, latitude } = req.body
     switch (deviceId) {
         case "busb":
             fuel = fuel * 137
