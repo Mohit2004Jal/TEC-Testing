@@ -79,7 +79,7 @@ function movingAverage(data, windowSize) {
 */
 
 function getFuelTrend(data) {
-    const REQUIRED_LENGTH = 7;
+    const REQUIRED_LENGTH = 10;
     // Ensure we have at least ten values to check
     if (data.length < REQUIRED_LENGTH) {
         return 0;
