@@ -32,7 +32,7 @@ const handleData = (req, res) => {
         // Add fuel data for this device
         deviceData[deviceId].fuelDataArray.push(fuel);
         // /*
-        console.log(`Device ${deviceId} - Fuel Data: `, req.body);
+        console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude, longitude });
         // */
         analyzeFuelData(deviceId, longitude, latitude, deviceData);
         res.status(200).send(`Fuel data received successfully for device ${deviceId}`);
