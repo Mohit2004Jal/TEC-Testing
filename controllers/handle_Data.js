@@ -25,7 +25,7 @@ const handleData = (req, res) => {
                     rising: false,
                     leaking: false,
                     draining: false,
-                    stable: 0
+                    // stable: 0
                 }
             };
         }

@@ -15,7 +15,9 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
             `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`
         );
         alertStatus.rising = true;
-        alertStatus.stable = 0;
+        alertStatus.draining = false
+        alertStatus.leaking = false;
+        // alertStatus.stable = 0;
     }
     else if (trend < 0 && !withinRadius && !alertStatus.leaking) {
         console.log("\x1b[41m Fuel is leaking \x1b[0m")
@@ -24,7 +26,9 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
             `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`
         );
         alertStatus.leaking = true;
-        alertStatus.stable = 0;
+        alertStatus.rising = false
+        alertStatus.draining = false;
+        // alertStatus.stable = 0;
     }
     else if (trend < 0 && withinRadius && !alertStatus.draining) {
         console.log("\x1b[41m Fuel is draining \x1b[0m")
@@ -33,20 +37,22 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
             `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`
         );
         alertStatus.draining = true;
-        alertStatus.stable = 0;
+        alertStatus.rising = false;
+        alertStatus.leaking = false;
+        // alertStatus.stable = 0;
     }
-    else if (trend == 0) {
-        if (alertStatus.rising || alertStatus.draining || alertStatus.leaking) {
-            if (alertStatus.stable > 15) {
-                console.log("\x1b[42m Fuel is stable \x1b[0m")
-                Object.keys(alertStatus).forEach((key) => {
-                    alertStatus[key] = false;
-                });
-                alertStatus.stable = 0
-            }
-            alertStatus.stable += 1
-        }
-    }
+    // else if (trend == 0) {
+    //     if (alertStatus.rising || alertStatus.draining || alertStatus.leaking) {
+    //         if (alertStatus.stable > 15) {
+    //             console.log("\x1b[42m Fuel is stable \x1b[0m")
+    //             Object.keys(alertStatus).forEach((key) => {
+    //                 alertStatus[key] = false;
+    //             });
+    //             alertStatus.stable = 0
+    //         }
+    //         alertStatus.stable += 1
+    //     }
+    // }
 }
 
 module.exports = {
