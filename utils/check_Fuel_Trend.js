@@ -11,10 +11,10 @@ function getFuelTrend(data) {
     let isDecreasing = true;
 
     for (let i = 1; i < recentData.length; i++) {
-        if (recentData[i] <= recentData[i - 1]) {
+        if (recentData[i] < recentData[i - 1]) {
             isIncreasing = false;
         }
-        if (recentData[i] >= recentData[i - 1]) {
+        if (recentData[i] > recentData[i - 1]) {
             isDecreasing = false;
         }
     }
