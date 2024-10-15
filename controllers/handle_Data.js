@@ -10,7 +10,7 @@ async function PostData(data, longitude, latitude) {
             longitude: longitude,
             latitude: latitude
         });
-        console.log('POST Response Data:', response.data);
+        // console.log('POST Response Data:', response.data);
     } catch (error) {
         console.error('Error posting data:', error);
     }
