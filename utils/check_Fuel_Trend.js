@@ -1,27 +1,22 @@
 function getFuelTrend(data) {
-    const REQUIRED_LENGTH = 10;
-    // Ensure we have at least ten values to check
-    if (data.length < REQUIRED_LENGTH) {
-        return;
-    }
-    const recentData = data.slice(-REQUIRED_LENGTH);
-
     // Check if strictly increasing
     let isIncreasing = true;
     let isDecreasing = true;
 
-    for (let i = 1; i < recentData.length; i++) {
-        if (recentData[i] < recentData[i - 1]) {
+    for (let i = 1; i < data.length; i++) {
+        if (data[i] < data[i - 1]) {
             isIncreasing = false;
         }
-        if (recentData[i] > recentData[i - 1]) {
+        if (data[i] > data[i - 1]) {
             isDecreasing = false;
         }
     }
 
     if (isIncreasing) {
+        // fuelInformation.trend = 1;
         return 1; // Strictly increasing
     } else if (isDecreasing) {
+        // fuelInformation.trend = -1
         return -1; // Strictly decreasing
     } else {
         return 0; // Neither

@@ -1,20 +1,6 @@
-const axios = require('axios');
 const { analyzeFuelData } = require("../utils/analyse_Fuel_Data")
 // Object to store fuel data and alert statuses for each device
 const deviceData = {};
-
-async function PostData(data, longitude, latitude) {
-    try {
-        const response = await axios.post('http://thingsboard.cloud/api/v1/39fwmmulx00ivunhco6t/telemetry', {
-            fuel: data,
-            longitude: longitude,
-            latitude: latitude
-        });
-        // console.log('POST Response Data:', response.data);
-    } catch (error) {
-        console.error('Error posting data:', error);
-    }
-}
 const handleData = (req, res) => {
     const deviceId = req.params.id;
     let { fuel, longitude, latitude } = req.body
@@ -47,8 +33,11 @@ const handleData = (req, res) => {
         // /*
         console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude, longitude });
         // */
-        analyzeFuelData(deviceId, longitude, latitude, deviceData);
-        PostData(fuel, longitude, latitude);
+        const REQUIRED_LENGTH = 10;
+        if (deviceData[deviceId].fuelDataArray.length > REQUIRED_LENGTH) {
+            deviceData[deviceId].fuelDataArray.shift()
+            analyzeFuelData(deviceId, longitude, latitude, deviceData);
+        }
         res.status(200).send(`Fuel data received successfully for device ${deviceId}`);
     } else {
         res.status(400).send("Invalid fuel data");

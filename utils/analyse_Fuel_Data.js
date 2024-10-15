@@ -12,7 +12,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         console.log("\x1b[41m Fuel is rising \x1b[0m")
         sendEmailAlert(
             "Fuel Increase Detected",
-            `Device ${deviceId}: Fuel level rising at coordinates (${longitude}, ${latitude}).`
+            `Device ${deviceId}: Fuel level at ${fuelDataArray[0]} rising at coordinates (${longitude}, ${latitude}).`
         );
         alertStatus.rising = true;
         alertStatus.draining = false
@@ -23,7 +23,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         console.log("\x1b[41m Fuel is leaking \x1b[0m")
         sendEmailAlert(
             "Fuel Leak Detected",
-            `Device ${deviceId}: Fuel is leaking at (${longitude}, ${latitude}) far from the target location.`
+            `Device ${deviceId}: Fuel level at ${fuelDataArray[0]} leaking at (${longitude}, ${latitude}) far from the target location.`
         );
         alertStatus.leaking = true;
         alertStatus.rising = false
@@ -34,7 +34,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         console.log("\x1b[41m Fuel is draining \x1b[0m")
         sendEmailAlert(
             "Fuel Drain Detected",
-            `Device ${deviceId}: Fuel draining at target location (${longitude}, ${latitude}).`
+            `Device ${deviceId}: Fuel level at ${fuelDataArray[0]} draining at target location (${longitude}, ${latitude}).`
         );
         alertStatus.draining = true;
         alertStatus.rising = false;
