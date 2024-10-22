@@ -5,22 +5,32 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "build": "npx webpack"
   },
   "author": "Mohit Davar",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.7",
+    "chart.js": "^4.4.5",
+    "chartjs-adapter-date-fns": "^3.0.0",
     "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
     "express": "^4.21.0",
-    "nodemailer": "^6.9.15"
+    "nodemailer": "^6.9.15",
+    "socket.io": "^4.8.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.25.8",
+    "@babel/preset-env": "^7.25.8",
     "@eslint/js": "^9.12.0",
     "@types/express": "^5.0.0",
     "@types/nodemailer": "^6.4.16",
+    "babel-loader": "^9.2.1",
     "eslint": "^9.12.0",
     "globals": "^15.11.0",
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
   }
 }

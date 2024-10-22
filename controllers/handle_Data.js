@@ -33,14 +33,18 @@ const handleData = (req, res) => {
         // /*
         console.log(`Device ${deviceId} - Fuel Data: `, { fuel, latitude, longitude });
         // */
+        const socket = req.app.get('socket')
+        socket.emit("Graph-Update", { fuel, deviceId })
+
         const REQUIRED_LENGTH = 10;
         if (deviceData[deviceId].fuelDataArray.length > REQUIRED_LENGTH) {
             deviceData[deviceId].fuelDataArray.shift()
             analyzeFuelData(deviceId, longitude, latitude, deviceData);
         }
-        res.status(200).send(`Fuel data received successfully for device ${deviceId}`);
+
+        return res.status(200).send(`Fuel data received successfully for device ${deviceId}`);
     } else {
-        res.status(400).send("Invalid fuel data");
+        return res.status(400).send("Invalid fuel data");
     }
 };
 
