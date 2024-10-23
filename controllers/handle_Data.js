@@ -36,7 +36,7 @@ const handleData = (req, res) => {
         const socket = req.app.get('socket')
         socket.emit("Graph-Update", { fuel, deviceId })
 
-        const REQUIRED_LENGTH = 10;
+        const REQUIRED_LENGTH = 6;
         if (deviceData[deviceId].fuelDataArray.length > REQUIRED_LENGTH) {
             deviceData[deviceId].fuelDataArray.shift()
             analyzeFuelData(deviceId, longitude, latitude, deviceData);
