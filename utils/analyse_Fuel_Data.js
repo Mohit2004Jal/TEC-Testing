@@ -1,9 +1,10 @@
 const { sendEmailAlert } = require("../service/send_Mail");
 const { getFuelTrend } = require("./check_Fuel_Trend");
 const { isWithinRadius } = require("./calc_Dist_Btwn_Two_Pts");
+const client = require("../service/db");
 
 // Function to handle fuel trend and send alerts for a specific device
-function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
+async function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
     const { fuelDataArray, alertStatus } = deviceData[deviceId];
     const trend = getFuelTrend(fuelDataArray);
     const withinRadius = isWithinRadius({ latitude, longitude });
@@ -18,6 +19,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         alertStatus.draining = false
         alertStatus.leaking = false;
         // alertStatus.stable = 0;
+        await client.query('UPDATE tanker_info SET isrising = true, isleaking = false, isdraining = false WHERE tanker_id = $1', [deviceId]);
     }
     else if (trend < 0 && !withinRadius && !alertStatus.leaking) {
         console.log("\x1b[41m Fuel is leaking \x1b[0m")
@@ -29,6 +31,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         alertStatus.rising = false
         alertStatus.draining = false;
         // alertStatus.stable = 0;
+        await client.query('UPDATE tanker_info SET isrising = false, isleaking = true, isdraining = false WHERE tanker_id = $1', [deviceId]);
     }
     else if (trend < 0 && withinRadius && !alertStatus.draining) {
         console.log("\x1b[41m Fuel is draining \x1b[0m")
@@ -40,6 +43,7 @@ function analyzeFuelData(deviceId, longitude, latitude, deviceData) {
         alertStatus.rising = false;
         alertStatus.leaking = false;
         // alertStatus.stable = 0;
+        await client.query('UPDATE tanker_info SET isrising = false, isleaking = false, isdraining = true WHERE tanker_id = $1', [deviceId]);
     }
     // else if (trend == 0) {
     //     if (alertStatus.rising || alertStatus.draining || alertStatus.leaking) {

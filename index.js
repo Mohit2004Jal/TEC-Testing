@@ -33,6 +33,12 @@ app.use("/api", IOT_Data_Router)
 const Static_Router = require("./routes/static-route")
 app.use("/", Static_Router)
 
+//Connecting the Database
+const client = require("./service/db.js")
+client.connect()
+    .then(() => console.log('Connected to PostgreSQL'))
+    .catch(err => console.error('Connection error', err.stack));
+
 //Starting the server
 const PORT = process.env.PORT || 8080
 server.listen(PORT, () => console.log(`Server Started at ${PORT}`))
