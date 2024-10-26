@@ -7,8 +7,7 @@ const http = require("http")
 const server = http.createServer(app)
 
 //.env for sensitive information
-const dotenv = require("dotenv");
-dotenv.config();
+require("dotenv").config();
 
 //Express Middlewares for recieving and parsing json and form data
 app.use(express.json());
@@ -28,9 +27,9 @@ io.on("connection", (socket) => {
 })
 
 //Different Routes
-const IOT_Data_Router = require("./routes/IOT_data_route")
-app.use("/api", IOT_Data_Router)
-const Static_Router = require("./routes/static-route")
+const IOT_API_Data_Route = require("./routes/IOT_data_route")
+app.use("/api", IOT_API_Data_Route)
+const Static_Router = require("./routes/frontend_route.js")
 app.use("/", Static_Router)
 
 //Connecting the Database

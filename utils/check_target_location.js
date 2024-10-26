@@ -1,7 +1,7 @@
-const targetLocation = { latitude: 30.886188, longitude: 75.929028 };
+const target_Location = { latitude: 30.886188, longitude: 75.929028 };
 const MAX_VARIATION_DISTANCE = 50; // in meters
 
-function calculateDistance(coord1, coord2) {
+function calculate_distance_between_two_coordinates(coord1, coord2) {
     const toRad = (x) => (x * Math.PI) / 180;
 
     const R = 6371e3; // Radius of Earth in meters
@@ -20,11 +20,11 @@ function calculateDistance(coord1, coord2) {
     return distance;
 }
 
-function isWithinRadius(currentLocation) {
-    const distance = calculateDistance(currentLocation, targetLocation);
+function is_point_near_target_location(currentLocation) {
+    const distance = calculate_distance_between_two_coordinates(currentLocation, target_Location);
     return distance <= MAX_VARIATION_DISTANCE;
 }
 
 module.exports = {
-    isWithinRadius,
+    is_point_near_target_location,
 };

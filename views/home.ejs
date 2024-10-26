@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Graph</title>
+    <link rel="stylesheet" href="/CSS/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+        integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+    <main class="bg-[#111827] w-full h-full flex flex-col gap-20px">
+        <% if (locals.names) { %>
+            <div class="w-full flex flex-col items-center justify-center gap-5 px-20 py-10">
+                <label for="tankers" class="block mb-2 text-sm font-medium text-white">
+                    Choose a tanker
+                </label>
+                <select name="tankers" id="tankers"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-96 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                    <% names.forEach(name=> { %>
+                        <option value="none" selected disabled hidden>Select a Tanker</option>
+                        <option value=<%=name.tanker_id%>><%=name.tanker_id%>
+                        </option>
+                        <% }) %>
+                </select>
+                <button
+                    class="rounded-md bg-blue-600 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-blue-700 focus:shadow-none active:bg-blue-700 hover:bg-blue-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2"
+                    type="button" id="select">
+                    Select
+                </button>
+            </div>
+            <% } %>
+                <div class="w-full h-screen">
+                    <canvas id="myChart" aria-label="Graph for fuel" role="img" width="400" height="100">
+                        <p>Your browser does not support graphs</p>
+                    </canvas>
+                </div>
+                <div class="h-screen">
+                    <div id="map" style="width: 100%; height: 100%;"></div>
+                </div>
+    </main>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/dist/bundle.js"></script>
+
+</html>

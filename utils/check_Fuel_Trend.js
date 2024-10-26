@@ -1,4 +1,4 @@
-function getFuelTrend(data) {
+function get_Fuel_Trend(data) {
     // Check if strictly increasing
     let isIncreasing = true;
     let isDecreasing = true;
@@ -15,13 +15,15 @@ function getFuelTrend(data) {
     if (isIncreasing) {
         // fuelInformation.trend = 1;
         return 1; // Strictly increasing
-    } else if (isDecreasing) {
+    }
+    else if (isDecreasing) {
         // fuelInformation.trend = -1
         return -1; // Strictly decreasing
-    } else {
+    }
+    else {
         return 0; // Neither
     }
 }
 module.exports = {
-    getFuelTrend
+    get_Fuel_Trend
 }

@@ -1,15 +1,16 @@
-/* global io */
+/* global io, L */
 const { Chart } = require("chart.js/auto");
 const socket = io.connect();
 
 const select_Button = document.getElementById("select");
 const select_Tanker = document.getElementById("tankers");
+let selectedTanker = "";
 
 let data_array = [];
 let label_array = [];
-let selectedTanker = "";
 let chart;
 const canvas = document.querySelector('canvas');
+
 
 function update_graph_data(values) {
     // Clear previous data
@@ -18,7 +19,7 @@ function update_graph_data(values) {
     values.forEach(({ fuel_level, timestamp }) => {
         data_array.unshift(fuel_level);
         const date = new Date(timestamp);
-        const label_format = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+        const label_format = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
         label_array.unshift(label_format);
     });
 }
@@ -42,6 +43,7 @@ select_Button.addEventListener("click", async () => {
             const values = await response.json();
             update_graph_data(values);
             create_graph();
+            create_map(values[0])
         }
         else { console.error("Error fetching graph data:", response.status); }
     }
@@ -83,9 +85,27 @@ function update_graph(fuel) {
     chart.data.datasets[0].data.push(fuel);
     chart.update();
 }
-// Socket listener for "Graph-Update" event
-socket.on("Graph-Update", ({ fuel, device_ID }) => {
+
+function create_map({ latitude, longitude, device_ID }) {
+    map.setView([longitude, latitude], 16);
+    if (markers[device_ID]) {
+        markers[device_ID].setLatLng([longitude, latitude]);
+    } else {
+        markers[device_ID] = L.marker([longitude, latitude]).addTo(map);
+    }
+}
+
+// Socket listener for "-Update" event
+socket.on("Widget-Update", ({ fuel, device_ID, longitude, latitude }) => {
     if (device_ID == selectedTanker) {
         update_graph(fuel)
     }
 });
+
+// Initialize map once
+const map = L.map("map").setView([0, 0], 2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "OpenStreetMap",
+}).addTo(map);
+//marker
+const markers = {}

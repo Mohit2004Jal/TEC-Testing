@@ -1,6 +1,5 @@
 const nodemailer = require("nodemailer");
-const dotenv = require("dotenv");
-dotenv.config();
+require("dotenv").config();
 
 const emailTransporter = nodemailer.createTransport({
     service: "gmail",
@@ -8,21 +7,39 @@ const emailTransporter = nodemailer.createTransport({
     port: 465,
     auth: {
         user: process.env.EMAIL,
-        pass: process.env.PASSWORD
-    }
+        pass: process.env.PASSWORD,
+    },
 });
-async function sendEmailAlert(subject, message) {
+
+async function send_Email_Alert(subject, message) {
     const mailOptions = {
-        from: "mohitdavar2004@gmail.com",
-        to: "davarrajni@gmail.com",
+        from: process.env.EMAIL, // Use environment variable for sender email
+        to: "davarrajni@gmail.com", // Consider parameterizing this for flexibility
         subject,
-        text: message
+        text: message,
     };
 
     try {
+        // Validate transporter configuration
+        if (!emailTransporter || !emailTransporter.transporter) {
+            throw new Error("Email transporter is not configured correctly.");
+        }
+
         await emailTransporter.sendMail(mailOptions);
-        console.log(`\x1b[42m Email Sent \x1b[0m`);
-    } catch (error) { console.error("Error sending email:", error) }
+        console.log(`\x1b[42m Email Sent: ${subject} \x1b[0m`);
+    }
+    catch (error) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error sending email: ${error.message}`);
+
+        if (error.response) {
+            console.error(`Response data: ${error.response.data}`);
+            console.error(`Response status: ${error.response.status}`);
+        }
+
+        console.error("Failed to send email alert. Please check your email configuration.");
+    }
 }
 
-module.exports = { sendEmailAlert }
+module.exports = {
+    send_Email_Alert
+};
