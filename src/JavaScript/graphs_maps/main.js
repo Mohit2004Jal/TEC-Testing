@@ -3,7 +3,7 @@ const select_Tanker = document.getElementById("tankers");
 let selectedTanker = "";
 
 const { create_graph, update_graph_data, update_graph } = require("./graph.js")
-// const { update_map } = require("./map.js")
+// const { update_map, create_map } = require("./map.js")
 
 /* global io */
 const socket = io.connect();
@@ -28,7 +28,7 @@ function initializeTankerSelection() {
                 const values = await response.json();
                 update_graph_data(values);
                 create_graph(selectedTanker);
-                // update_map(values[0])
+                // create_map(values[0])
             }
             else { console.error("Error fetching graph data:", response.status); }
         }
@@ -37,9 +37,10 @@ function initializeTankerSelection() {
 }
 
 // Socket listener for "Widget-Update" event
-socket.on("Widget-Update", ({ fuel, device_ID }) => {
-    if (device_ID == selectedTanker) {
+socket.on("Widget-Update", ({ fuel, number_plate, longitude, latitude }) => {
+    if (number_plate == selectedTanker) {
         update_graph(fuel)
+        // update_map({ latitude, longitude, number_plate })
     }
 });
 

@@ -2,8 +2,8 @@ const { get_all_ids } = require("../utils/fetch_id.js")
 
 const displayGraph = async (req, res) => {
     try {
-        const tanker_ids = await get_all_ids();
-        res.status(200).render("home.ejs", { names: tanker_ids });
+        const number_plates = await get_all_ids();
+        res.status(200).render("home.ejs", { names: number_plates });
     }
     catch (error) {
         console.error(error);

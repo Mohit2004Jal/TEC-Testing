@@ -6,9 +6,11 @@ const client = new Client({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
     database: process.env.DB_NAME,
+    /*
     ssl: {
         rejectUnauthorized: false, // This is used in development. Set to true in production.
     },
+    */
 });
 
 module.exports = client

@@ -3,28 +3,25 @@ const client = require("../service/db");
 const get_data_for_widgets = async (req, res) => {
 
     const selectedTanker = req.body.tanker;
-    if (!selectedTanker) {
-        return res.status(400).json({ error: "Tanker ID is required." });
-    }
 
     try {
         // Query to getn fuel level and latest location of the selected tanker
         const query = `
-            SELECT fuel_level, timestamp, latest_location.latitude, latest_location.longitude 
-            FROM tanker_data 
-            CROSS JOIN LATERAL (
-                SELECT longitude, latitude 
-                FROM tanker_data 
-                WHERE tanker_id = $1 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ) AS latest_location 
-            WHERE tanker_id = $2 
-            ORDER BY timestamp DESC 
-            LIMIT 20
+        SELECT
+            td.fuel_level,
+            td.latitude,
+            td.longitude,
+            td.timestamp
+        FROM
+            tanker_info ti
+        JOIN
+            tanker_data td ON ti.tanker_id = td.tanker_id
+        WHERE
+            ti.number_plate = $1
+        ORDER BY timestamp DESC 
+        LIMIT $2
         `;
-
-        const { rows } = await client.query(query, [selectedTanker, selectedTanker]);
+        const { rows } = await client.query(query, [selectedTanker, 20]);
         res.status(200).json(rows);
     }
     catch (error) {

@@ -84,10 +84,9 @@ var select_Tanker = document.getElementById("tankers");
 var selectedTanker = "";
 var _require = __webpack_require__(/*! ./graph.js */ "./src/JavaScript/graphs_maps/graph.js"),
   create_graph = _require.create_graph,
-  update_graph_data = _require.update_graph_data;
-var _require2 = __webpack_require__(/*! ./graph */ "./src/JavaScript/graphs_maps/graph.js"),
-  update_graph = _require2.update_graph;
-// const { update_map } = require("./map.js")
+  update_graph_data = _require.update_graph_data,
+  update_graph = _require.update_graph;
+// const { update_map, create_map } = require("./map.js")
 
 /* global io */
 var socket = io.connect();
@@ -130,7 +129,7 @@ function initializeTankerSelection() {
           values = _context.sent;
           update_graph_data(values);
           create_graph(selectedTanker);
-          // update_map(values[0])
+          // create_map(values[0])
           _context.next = 17;
           break;
         case 16:
@@ -153,9 +152,12 @@ function initializeTankerSelection() {
 // Socket listener for "Widget-Update" event
 socket.on("Widget-Update", function (_ref2) {
   var fuel = _ref2.fuel,
-    device_ID = _ref2.device_ID;
-  if (device_ID == selectedTanker) {
+    number_plate = _ref2.number_plate,
+    longitude = _ref2.longitude,
+    latitude = _ref2.latitude;
+  if (number_plate == selectedTanker) {
     update_graph(fuel);
+    // update_map({ latitude, longitude, number_plate })
   }
 });
 module.exports = {

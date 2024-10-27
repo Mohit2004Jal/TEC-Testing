@@ -19,13 +19,6 @@ async function getLocationName({ latitude, longitude }) {
         }
     } catch (error) {
         console.error(`[${new Date().toLocaleString("en-GB")}] Error fetching location for coordinates: ${latitude}, ${longitude}. Error: ${error.message}`);
-
-        // Check if the error response has more details
-        if (error.response) {
-            console.error(`Response data: ${JSON.stringify(error.response.data)}`);
-            console.error(`Response status: ${error.response.status}`);
-        }
-
         return null; 
     }
 }
