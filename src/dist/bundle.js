@@ -93,7 +93,8 @@ function update_graph_data(values) {
   values.forEach(function (_ref) {
     var fuel_level = _ref.fuel_level,
       timestamp = _ref.timestamp;
-    data_array.unshift(fuel_level * local_factor);
+    // data_array.unshift(fuel_level * local_factor);
+    data_array.unshift(fuel_level);
     var date = new Date(timestamp);
     var label_format = "".concat(date.getHours(), ":").concat(String(date.getMinutes()).padStart(2, '0'), ":").concat(String(date.getSeconds()).padStart(2, '0'));
     label_array.unshift(label_format);
