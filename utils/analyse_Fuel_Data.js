@@ -41,8 +41,8 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         alertStatus.draining = false;
         alertStatus.leaking = false;
 
-        const location = await hanleLocation(number_plate, { latitude, longitude })
-        await send_Email_Alert("Fuel Increase Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} rising at ${location}.`);
+        // const location = await hanleLocation(number_plate, { latitude, longitude })
+        // await send_Email_Alert("Fuel Increase Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} rising at ${location}.`);
         await updateTankerInfo(number_plate, { isrising: true, isleaking: false, isdraining: false });
     }
     else if (trend < 0 && !withinRadius && !alertStatus.leaking) {
@@ -53,8 +53,8 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         alertStatus.rising = false;
         alertStatus.draining = false;
 
-        const location = await hanleLocation(number_plate, { latitude, longitude })
-        await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} far from the target location.`);
+        // const location = await hanleLocation(number_plate, { latitude, longitude })
+        // await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} far from the target location.`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: true, isdraining: false });
     }
     else if (trend < 0 && withinRadius && !alertStatus.draining) {
@@ -64,8 +64,8 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         alertStatus.rising = false;
         alertStatus.leaking = false;
 
-        const location = await hanleLocation(number_plate, { latitude, longitude })
-        await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location}.`);
+        // const location = await hanleLocation(number_plate, { latitude, longitude })
+        // await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location}.`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: false, isdraining: true });
     }
 }

@@ -11,9 +11,30 @@ var _require = __webpack_require__(/*! chart.js/auto */ "./node_modules/chart.js
   Chart = _require.Chart;
 var data_array = [];
 var label_array = [];
+var local_factor = 1;
 var chart;
+var graph_color = 'black';
 var canvas = document.querySelector('canvas');
 function create_graph(selectedTanker) {
+  function generate_grid(color, lineWidth) {
+    return {
+      display: true,
+      color: color,
+      lineWidth: lineWidth
+    };
+  }
+  function generate_labels(text, font_size, font_weight, color) {
+    return {
+      display: true,
+      text: text,
+      font: {
+        size: font_size,
+        weight: font_weight
+      },
+      color: color
+    };
+  }
+
   // Destroy the previous chart if it exists
   if (chart) {
     chart.destroy();
@@ -23,13 +44,29 @@ function create_graph(selectedTanker) {
     datasets: [{
       label: selectedTanker,
       data: data_array,
-      borderColor: 'rgb(189,195,199)',
+      borderColor: graph_color,
       lineTension: 0.1
     }]
   };
+  var options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        grid: generate_grid(graph_color, 1),
+        title: generate_labels('Time', 14, 'bold', graph_color)
+      },
+      y: {
+        grid: generate_grid(graph_color, 1),
+        title: generate_labels('Fuel', 14, 'bold', graph_color),
+        beginAtZero: true
+      }
+    }
+  };
   var config = {
     type: 'line',
-    data: data
+    data: data,
+    options: options
   };
   chart = new Chart(canvas, config);
 }
@@ -42,7 +79,7 @@ function update_graph(fuel) {
   var date = new Date();
   var now = "".concat(date.getHours(), ":").concat(date.getMinutes(), ":").concat(date.getSeconds());
   chart.data.labels.push(now);
-  chart.data.datasets[0].data.push(fuel);
+  chart.data.datasets[0].data.push(fuel * local_factor);
   chart.update();
 }
 function update_graph_data(values) {
@@ -52,10 +89,11 @@ function update_graph_data(values) {
       array.pop();
     }
   });
+  local_factor = values[0].factor;
   values.forEach(function (_ref) {
     var fuel_level = _ref.fuel_level,
       timestamp = _ref.timestamp;
-    data_array.unshift(fuel_level);
+    data_array.unshift(fuel_level * local_factor);
     var date = new Date(timestamp);
     var label_format = "".concat(date.getHours(), ":").concat(String(date.getMinutes()).padStart(2, '0'), ":").concat(String(date.getSeconds()).padStart(2, '0'));
     label_array.unshift(label_format);
@@ -86,7 +124,9 @@ var _require = __webpack_require__(/*! ./graph.js */ "./src/JavaScript/graphs_ma
   create_graph = _require.create_graph,
   update_graph_data = _require.update_graph_data,
   update_graph = _require.update_graph;
-// const { update_map, create_map } = require("./map.js")
+var _require2 = __webpack_require__(/*! ./map.js */ "./src/JavaScript/graphs_maps/map.js"),
+  update_map = _require2.update_map,
+  create_map = _require2.create_map;
 
 /* global io */
 var socket = io.connect();
@@ -120,48 +160,98 @@ function initializeTankerSelection() {
         case 7:
           response = _context.sent;
           if (!response.ok) {
-            _context.next = 16;
+            _context.next = 18;
             break;
           }
           _context.next = 11;
           return response.json();
         case 11:
           values = _context.sent;
+          document.querySelectorAll('.widget').forEach(function (widget) {
+            widget.classList.remove('hidden');
+          });
           update_graph_data(values);
           create_graph(selectedTanker);
-          // create_map(values[0])
-          _context.next = 17;
+          create_map(values[0]);
+          _context.next = 19;
           break;
-        case 16:
+        case 18:
           console.error("Error fetching graph data:", response.status);
-        case 17:
-          _context.next = 22;
-          break;
         case 19:
-          _context.prev = 19;
+          _context.next = 24;
+          break;
+        case 21:
+          _context.prev = 21;
           _context.t0 = _context["catch"](4);
           console.error("Error during API call:", _context.t0);
-        case 22:
+        case 24:
         case "end":
           return _context.stop();
       }
-    }, _callee, null, [[4, 19]]);
+    }, _callee, null, [[4, 21]]);
   })));
 }
 
 // Socket listener for "Widget-Update" event
 socket.on("Widget-Update", function (_ref2) {
   var fuel = _ref2.fuel,
-    number_plate = _ref2.number_plate,
+    numberPlate = _ref2.numberPlate,
     longitude = _ref2.longitude,
     latitude = _ref2.latitude;
-  if (number_plate == selectedTanker) {
+  if (numberPlate == selectedTanker) {
     update_graph(fuel);
-    // update_map({ latitude, longitude, number_plate })
+    update_map({
+      latitude: latitude,
+      longitude: longitude,
+      numberPlate: numberPlate
+    });
   }
 });
 module.exports = {
   initializeTankerSelection: initializeTankerSelection
+};
+
+/***/ }),
+
+/***/ "./src/JavaScript/graphs_maps/map.js":
+/*!*******************************************!*\
+  !*** ./src/JavaScript/graphs_maps/map.js ***!
+  \*******************************************/
+/***/ ((module) => {
+
+/* global L */
+
+// Marker storage
+var markers = {};
+// Map instance
+var map;
+
+// Initialize the map only once with tanker location
+function create_map(tanker_location) {
+  if (!map) {
+    map = L.map("map").setView([0, 0], 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "OpenStreetMap"
+    }).addTo(map);
+  }
+  update_map(tanker_location);
+}
+
+// Update the map location and marker position
+function update_map(_ref) {
+  var latitude = _ref.latitude,
+    longitude = _ref.longitude,
+    number_plate = _ref.number_plate;
+  map.setView([latitude, longitude], 16);
+  if (markers[number_plate]) {
+    markers[number_plate].setLatLng([latitude, longitude]);
+  } else {
+    markers[number_plate] = L.marker([latitude, longitude]).addTo(map);
+  }
+}
+module.exports = {
+  update_map: update_map,
+  create_map: create_map
 };
 
 /***/ }),

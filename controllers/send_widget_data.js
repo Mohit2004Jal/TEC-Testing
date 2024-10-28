@@ -11,7 +11,8 @@ const get_data_for_widgets = async (req, res) => {
             td.fuel_level,
             td.latitude,
             td.longitude,
-            td.timestamp
+            td.timestamp,
+            ti.factor
         FROM
             tanker_info ti
         JOIN

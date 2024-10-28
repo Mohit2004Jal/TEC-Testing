@@ -1,138 +1,137 @@
 const { analyzeFuelData } = require("../utils/analyse_Fuel_Data");
 const client = require("../service/db");
 
-// Object to store fuel data and alert status for each tanker
-const all_current_devices = {};
-//Formating coming values
-function reduce_decimal_size(value, size) {
-    return parseFloat(value.toFixed(size))
-}
+// Memory store for tracking current state and data of each tanker
+const allCurrentDevices = {};
 
-
-
-// Main Function to handle data from tanker
-const handle_data_from_device = async (req, res) => {
-    // Number of recent fuel values to check for each tanker
-    const REQUIRED_LENGTH = 6;
-
-    // Extract values from request
-    const number_plate = req.params.id;
-    let { fuel, longitude, latitude } = req.body;
-
-    if (fuel == null || longitude == null || latitude == null) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Invalid data received for tanker ${number_plate}.`);
-        return res.status(400).json({ error: "Invalid fuel data: Missing fuel, longitude, or latitude." });
-    }
-
-    // Multiplication Factor based on number_plate
-    switch (number_plate) {
-        case "busb":
-            fuel *= 137;
-            break;
-        case "busc":
-            fuel *= 187.6;
-            break;
-        default:
-            break;
-    }
-
-    //Fixing the values
-    fuel = reduce_decimal_size(fuel, 2);
-    longitude = reduce_decimal_size(longitude, 6);
-    latitude = reduce_decimal_size(latitude, 6);
-
-    // Emit data to frontend if socket is available
+// Emit data to frontend via socket if available
+function emitToFrontend(req, data) {
+    const { fuel, numberPlate, longitude, latitude } = data;
     try {
         const socket = req.app.get('socket');
-        if (socket) {
-            socket.emit("Widget-Update", { fuel, number_plate, longitude, latitude });
-        }
-        else {
-            console.warn(`[${new Date().toLocaleString("en-GB")}] No socket connection available for tanker ${number_plate}.`);
-        }
+        if (socket) socket.emit("Widget-Update", { fuel, numberPlate, longitude, latitude });
+        else console.warn(`[${new Date().toLocaleString("en-GB")}] No socket connection for tanker ${numberPlate}.`);
     }
-    catch (err) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Error emitting socket data for tanker ${number_plate}: ${err.message}`);
-    }
+    catch (err) { console.error(`[${new Date().toLocaleString("en-GB")}] Error emitting data for tanker ${numberPlate}: ${err.message}`); }
+}
 
-    // Initialize tanker data in memory if it's not present
-    if (!all_current_devices[number_plate]) {
-        try {
-            // Fetch tanker data from the database
-            const tanker = await client.query(
-                `SELECT tanker_data.fuel_level, tanker_data.latitude, tanker_data.longitude, 
-                        tanker_info.number_plate, tanker_info.tanker_name, tanker_info.isrising, 
-                        tanker_info.isdraining, tanker_info.isleaking, tanker_info.tanker_id 
-                 FROM tanker_info 
-                 LEFT JOIN tanker_data ON tanker_info.tanker_id = tanker_data.tanker_id 
-                 WHERE tanker_info.number_plate = $1 
-                 ORDER BY tanker_data.timestamp DESC 
-                 LIMIT $2`,
-                [number_plate, REQUIRED_LENGTH]
-            );
-            // tanker not in the database
-            if (tanker.rows.length === 0) {
-                // Insert new tanker if not in database
-                const new_Device = await client.query(
-                    'INSERT INTO tanker_info (number_plate, tanker_name) VALUES ($1, $2) RETURNING tanker_name, tanker_id',
-                    [number_plate, number_plate]
-                );
-                all_current_devices[number_plate] = {
-                    fuelDataArray: new Array(REQUIRED_LENGTH).fill(0),
-                    alertStatus: {
-                        rising: false,
-                        leaking: false,
-                        draining: false
-                    },
-                    name: new_Device.rows[0].tanker_name,
-                    tanker_id: new_Device.rows[0].tanker_id
-                };
-            }
-            else {
-                // Device exists in DB, populate local cache
-                const { tanker_id, number_plate, tanker_name, isrising, isdraining, isleaking } = tanker.rows[0];
-                all_current_devices[number_plate] = {
-                    fuelDataArray: tanker.rows.map(data => data.fuel_level),
-                    alertStatus: {
-                        rising: isrising,
-                        leaking: isleaking,
-                        draining: isdraining
-                    },
-                    name: tanker_name,
-                    tanker_id: tanker_id
-                };
-            }
-        } catch (err) {
-            console.error(`[${new Date().toLocaleString("en-GB")}] Error initializing data for tanker ${number_plate}: ${err.message}`);
-            return res.status(500).json({ error: "Internal error initializing tanker data." });
-        }
-    }
-
-    // Add fuel data to local cache 
-    all_current_devices[number_plate].fuelDataArray.push(fuel);
-    if (all_current_devices[number_plate].fuelDataArray.length > REQUIRED_LENGTH) {
-        all_current_devices[number_plate].fuelDataArray.shift();
-    }
-
-    // Adding data to database
+// Insert fuel data into the database for the specified tanker
+async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
     try {
         await client.query(
             'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude) VALUES ($1, $2, $3, $4)',
-            [all_current_devices[number_plate].tanker_id, fuel, latitude, longitude]
+            [tankerId, fuel, latitude, longitude]
         );
+        return true;
     }
     catch (err) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Error inserting fuel data for tanker ${number_plate}: ${err.message}`);
-        return res.status(500).json({ error: "Internal error saving fuel data." });
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error inserting fuel data: ${err.message}`);
+        return false;
     }
+}
 
-    // Analyze fuel data for alert conditions
-    console.log(`Data for tanker ${number_plate}: `, { fuel, latitude, longitude })
-    await analyzeFuelData(number_plate, longitude, latitude, all_current_devices);
+// Initialize or retrieve tanker data from the database
+async function getTankerData(numberPlate, requiredLength) {
+    try {
+        const tankerQuery = `
+            SELECT td.fuel_level, td.latitude, td.longitude,
+                   ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
+                   ti.isleaking, ti.tanker_id
+            FROM tanker_info ti
+            LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
+            WHERE ti.number_plate = $1
+            ORDER BY td.timestamp DESC 
+            LIMIT $2`;
+        const result = await client.query(tankerQuery, [numberPlate, requiredLength]);
 
-    return res.status(200).json({ message: `Fuel data received successfully for tanker ${number_plate}` });
+        if (result.rows.length === 0) {
+            const insertResult = await client.query(
+                'INSERT INTO tanker_info (number_plate, tanker_name) VALUES ($1, $2) RETURNING tanker_name, tanker_id',
+                [numberPlate, numberPlate]
+            );
+            const newDevice = insertResult.rows[0];
+            return {
+                fuelDataArray: new Array(requiredLength).fill(0),
+                alertStatus: { rising: false, leaking: false, draining: false },
+                name: newDevice.tanker_name,
+                tankerId: newDevice.tanker_id,
+            };
+        }
+        else {
+            const { tanker_id, tanker_name, isrising, isdraining, isleaking } = result.rows[0];
+            return {
+                fuelDataArray: result.rows.map(data => data.fuel_level),
+                alertStatus: { rising: isrising, leaking: isleaking, draining: isdraining },
+                name: tanker_name,
+                tankerId: tanker_id,
+            };
+        }
+    }
+    catch (err) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error fetching data for tanker ${numberPlate}: ${err.message}`);
+        throw new Error("Failed to initialize tanker data");
+    }
+}
+
+// Main handler for incoming tanker data
+const handleDataFromDevice = async (req, res) => {
+    const REQUIRED_LENGTH = 6;
+    const numberPlate = req.params.id;
+    let { fuel, longitude, latitude } = req.body;
+
+    try {
+        emitToFrontend(req, { fuel, numberPlate, longitude, latitude });
+        // Multiplication Factor based on number_plate
+        switch (numberPlate) {
+            case "busb":
+                fuel *= 137;
+                break;
+            case "busc":
+                fuel *= 187.6;
+                break;
+            default:
+                break;
+        }
+        console.log(`Received data for tanker ${numberPlate}: `, { fuel, longitude, latitude });
+
+        if (!allCurrentDevices[numberPlate]) {
+            allCurrentDevices[numberPlate] = await getTankerData(numberPlate, REQUIRED_LENGTH);
+        }
+
+        const deviceData = allCurrentDevices[numberPlate];
+
+        deviceData.fuelDataArray.push(fuel);
+        if (deviceData.fuelDataArray.length > REQUIRED_LENGTH) deviceData.fuelDataArray.shift();
+
+        const isInserted = await insertFuelData({ tankerId: deviceData.tankerId, fuel, latitude, longitude });
+        if (!isInserted) return res.status(500).json({ error: "Failed to save fuel data." });
+
+        await analyzeFuelData(numberPlate, longitude, latitude, allCurrentDevices);
+
+        res.status(200).json({ message: `Fuel data received successfully for tanker ${numberPlate}` });
+    }
+    catch (error) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error handling data for tanker ${numberPlate}: ${error.message}`);
+        res.status(500).json({ error: "Internal server error." });
+    }
 };
 
 module.exports = {
-    handle_data_from_device
+    handleDataFromDevice
 };
+
+
+/*
+SHIFTING TO FRONTEND
+// Multiplication Factor based on number_plate
+switch (number_plate) {
+    case "busb":
+        fuel *= 137;
+        break;
+    case "busc":
+        fuel *= 187.6;
+        break;
+    default:
+        break;
+}
+*/
