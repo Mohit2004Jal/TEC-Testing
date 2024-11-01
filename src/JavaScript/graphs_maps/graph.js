@@ -44,7 +44,8 @@ function create_graph(selectedTanker) {
                 type: 'realtime',
                 time: { parser: 'luxon' },
                 realtime: {
-                    ttl: 60000 * 60 * 24 * 365 * 100
+                    ttl: 60000 * 60 * 24 * 365 * 100,
+                    duration: 60000 * 2
                 }
             },
             y: {

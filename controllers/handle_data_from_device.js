@@ -34,7 +34,7 @@ async function getTankerData(numberPlate, requiredLength) {
         const tankerQuery = `
             SELECT td.fuel_level, td.latitude, td.longitude,
                 ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
-                ti.isleaking, ti.tanker_id
+                ti.isleaking, ti.tanker_id, tl.isstable
             FROM tanker_info ti
             LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
             WHERE ti.number_plate = $1
@@ -50,16 +50,16 @@ async function getTankerData(numberPlate, requiredLength) {
             const newDevice = insertResult.rows[0];
             return {
                 fuelDataArray: new Array(requiredLength).fill(0),
-                alertStatus: { rising: false, leaking: false, draining: false },
+                alertStatus: { rising: false, leaking: false, draining: false, stable: false },
                 name: newDevice.tanker_name,
                 tankerId: newDevice.tanker_id,
             };
         }
         else {
-            const { tanker_id, tanker_name, isrising, isdraining, isleaking } = result.rows[0];
+            const { tanker_id, tanker_name, isrising, isdraining, isleaking, isstable } = result.rows[0];
             return {
                 fuelDataArray: result.rows.map(data => data.fuel_level),
-                alertStatus: { rising: isrising, leaking: isleaking, draining: isdraining },
+                alertStatus: { rising: isrising, leaking: isleaking, draining: isdraining, stable: isstable },
                 name: tanker_name,
                 tankerId: tanker_id,
             };
@@ -73,7 +73,7 @@ async function getTankerData(numberPlate, requiredLength) {
 
 // Main handler for incoming tanker data
 const handleDataFromDevice = async (req, res) => {
-    const REQUIRED_LENGTH = 10;
+    const REQUIRED_LENGTH = 11;
     const numberPlate = req.params.id;
     let { fuel, longitude, latitude } = req.body;
 

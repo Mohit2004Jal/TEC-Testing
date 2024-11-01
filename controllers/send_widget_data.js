@@ -21,7 +21,7 @@ const get_data_for_widgets = async (req, res) => {
         ORDER BY timestamp DESC 
         LIMIT $2
         `;
-        const { rows } = await client.query(query, [selectedTanker, 20]);
+        const { rows } = await client.query(query, [selectedTanker, 100]);
         res.status(200).json(rows);
     }
     catch (error) {
