@@ -117,7 +117,7 @@ function update_graph_data(values) {
   values.forEach(function (row) {
     return visibleData.unshift({
       x: new Date(row.timestamp).getTime(),
-      y: row.fuel_level * local_factor
+      y: row.fuel_level
     });
   });
 }
