@@ -34,7 +34,7 @@ async function getTankerData(numberPlate, requiredLength) {
         const tankerQuery = `
             SELECT td.fuel_level, td.latitude, td.longitude,
                 ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
-                ti.isleaking, ti.tanker_id, tl.isstable
+                ti.isleaking, ti.tanker_id, ti.isstable
             FROM tanker_info ti
             LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
             WHERE ti.number_plate = $1
