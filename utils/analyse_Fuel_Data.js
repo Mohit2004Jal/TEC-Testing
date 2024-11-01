@@ -30,14 +30,14 @@ async function handleLocation(number_plate, { latitude, longitude }) {
 // Helper function to find a nearby company within a certain distance
 function findNearbyCompany(latitude, longitude) {
     for (const [coords, name] of Object.entries(companies)) {
-        const [companyLat, companyLong] = coords.split('-').map(Number); 
+        const [companyLat, companyLong] = coords.split('-').map(Number);
 
         if (is_point_near_target_location({ latitude, longitude }, { latitude: companyLat, longitude: companyLong })) {
             return name;
         }
     }
 
-    return null; 
+    return null;
 }
 
 
@@ -90,7 +90,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
 
         // Stable fuel level logic
     }
-    else if (trend === 0) {
+    else if (trend === 0 && !alertStatus.stable) {
         stableCount++;
         if (stableCount > 20) {
             stableCount = 0;
