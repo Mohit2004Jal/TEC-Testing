@@ -94,7 +94,7 @@ function update_graph_data(values) {
     values.forEach(row => (
         visibleData.unshift({
             x: new Date(row.timestamp).getTime(),
-            y: row.fuel_level * local_factor
+            y: row.fuel_level
         })
     ));
 
