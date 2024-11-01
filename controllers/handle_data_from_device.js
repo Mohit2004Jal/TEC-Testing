@@ -73,7 +73,7 @@ async function getTankerData(numberPlate, requiredLength) {
 
 // Main handler for incoming tanker data
 const handleDataFromDevice = async (req, res) => {
-    const REQUIRED_LENGTH = 6;
+    const REQUIRED_LENGTH = 5;
     const numberPlate = req.params.id;
     let { fuel, longitude, latitude } = req.body;
 
