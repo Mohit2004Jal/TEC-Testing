@@ -1,0 +1,103 @@
+/* global Chart*/
+
+// Visible chart data limited to 20 labels
+const visibleData = [];
+const visibleLabels = [];
+// Full data cache for larger historical data
+const dataCache = [];
+const labelCache = [];
+// Factor to multiply data with
+let local_factor = 1;
+//Chart instance and its styling
+let chart;
+const graph_color = 'black'
+const canvas = document.querySelector('canvas');
+
+//Helper function
+function updateVisibleData() {
+    visibleData.splice(0, visibleData.length, ...dataCache.slice(-20));
+    visibleLabels.splice(0, visibleLabels.length, ...labelCache.slice(-20));
+    visibleLabels.forEach((timestamp, index, array) => {
+        array[index] = beautify_timestamps(timestamp)
+    })
+}
+function generate_grid(color, lineWidth) {
+    return { display: true, color: color, lineWidth: lineWidth }
+}
+function generate_labels(text, font_size, font_weight, color) {
+    return { display: true, text: text, font: { size: font_size, weight: font_weight }, color: color }
+}
+function beautify_timestamps(timestamp) {
+    const date = new Date(timestamp);
+    const label = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    return label;
+}
+
+
+//Main functions
+//Function to create a graph
+function create_graph(selectedTanker) {
+    // Destroy the previous chart if it exists
+    if (chart) chart.destroy();
+
+    const data = {
+        labels: visibleLabels,
+        datasets: [{ label: selectedTanker, data: visibleData, borderColor: graph_color, lineTension: 0.1 }]
+    };
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { grid: generate_grid(graph_color, 1), title: generate_labels('Time', 14, 'bold', graph_color), type: 'realtime' },
+            y: { grid: generate_grid(graph_color, 1), title: generate_labels('Fuel', 14, 'bold', graph_color) }
+        },
+        plugins: {
+            zoom: {
+                zoom: {
+                    wheel: {
+                        enabled: true
+                    }
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'xy'
+                }
+            }
+        }
+    }
+    const config = { type: 'line', data: data, options: options };
+    chart = new Chart(canvas, config);
+    // Chart.register(zoomPlugin)
+}
+//Function to update Graph
+function update_graph(fuel) {
+    if (chart.data.datasets[0].data.length >= 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+    const now = beautify_timestamps(null)
+    chart.data.labels.push(now);
+    chart.data.datasets[0].data.push(fuel * local_factor);
+    chart.update();
+}
+
+function update_graph_data(values) {
+    // Clear previous data
+    [visibleData, visibleLabels].forEach(array => {
+        while (array.length > 0) {
+            array.pop();
+        }
+    })
+
+    local_factor = values[0].factor
+    values.forEach(({ fuel_level, timestamp }) => {
+        dataCache.unshift(fuel_level * local_factor);
+        // dataCache.unshift(fuel_level);
+        labelCache.unshift(timestamp);
+    });
+    updateVisibleData();
+}
+
+
+module.exports = { create_graph, update_graph, update_graph_data }

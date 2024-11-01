@@ -12,6 +12,8 @@ require("dotenv").config();
 //Express Middlewares for recieving and parsing json and form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+const cookieParser = require('cookie-parser')
+app.use(cookieParser())
 
 // Setting Up Templating Engine
 const path = require("path")

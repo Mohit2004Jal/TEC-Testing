@@ -26,12 +26,10 @@ function initializeTankerSelection() {
 
             if (response.ok) {
                 const values = await response.json();
-                document.querySelectorAll('.widget').forEach(widget => {
-                    widget.classList.remove('hidden')
-                })
+                document.querySelectorAll('.widget').forEach(widget => { widget.classList.remove('hidden') })
+                create_map(values[0])
                 update_graph_data(values);
                 create_graph(selectedTanker);
-                create_map(values[0])
             }
             else { console.error("Error fetching graph data:", response.status); }
         }
@@ -42,11 +40,9 @@ function initializeTankerSelection() {
 // Socket listener for "Widget-Update" event
 socket.on("Widget-Update", ({ fuel, numberPlate, longitude, latitude }) => {
     if (numberPlate == selectedTanker) {
-        update_graph(fuel)
-        update_map({ latitude, longitude, numberPlate })
+        update_graph(fuel);
+        update_map({ latitude, longitude, numberPlate });
     }
 });
 
-module.exports = {
-    initializeTankerSelection,
-}
+initializeTankerSelection();

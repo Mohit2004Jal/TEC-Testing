@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBR | Admin Panel</title>
+    <link rel="shortcut icon" href="/Images/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="/CSS/output.css">
+    <style>
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 h-full w-full">
+    <%- include('includes/navbar.ejs') %>
+        <% if (locals.configs) { %>
+            <main>
+                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">
+                                    Number Plate
+                                </th>
+                                <th scope="col" class="px-6 py-3">
+                                    Tanker Name
+                                </th>
+                                <th scope="col" class="px-6 py-3">
+                                    Multiplication Factor
+                                </th>
+                                <th scope="col" class="px-6 py-3">
+                                    <span class="sr-only">
+                                        Edit
+                                    </span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% configs.forEach(tanker=> { %>
+                                <tr class="bg-gray-800 border-gray-700 hover:bg-gray-600">
+                                    <th scope="row" class="px-6 py-4 font-medium whitespace-nowrap text-white">
+                                        <%=tanker.number_plate%>
+                                    </th>
+                                    <td class="px-6 py-4">
+                                        <input type="text"
+                                            class="disabled:bg-transparent disabled:text-gray-400 px-2 py-1 outline-none rounded-xl font-mono text-black"
+                                            value='<%=tanker.tanker_name%>' disabled required name='tanker_name'>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <input type="number"
+                                            class="disabled:bg-transparent px-2 py-1 outline-none rounded-xl font-mono text-black disabled:text-gray-400"
+                                            value='<%=tanker.factor%>' disabled required name="factor">
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="font-medium text-blue-500 hover:underline edit">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+            <% } %>
+</body>
+<script src="/JavaScript/admin-panel/index.js"></script>
+
+</html>

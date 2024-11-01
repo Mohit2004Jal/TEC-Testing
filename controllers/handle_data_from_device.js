@@ -14,7 +14,6 @@ function emitToFrontend(req, data) {
     }
     catch (err) { console.error(`[${new Date().toLocaleString("en-GB")}] Error emitting data for tanker ${numberPlate}: ${err.message}`); }
 }
-
 // Insert fuel data into the database for the specified tanker
 async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
     try {
@@ -29,14 +28,13 @@ async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
         return false;
     }
 }
-
 // Initialize or retrieve tanker data from the database
 async function getTankerData(numberPlate, requiredLength) {
     try {
         const tankerQuery = `
             SELECT td.fuel_level, td.latitude, td.longitude,
-                   ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
-                   ti.isleaking, ti.tanker_id
+                ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
+                ti.isleaking, ti.tanker_id
             FROM tanker_info ti
             LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
             WHERE ti.number_plate = $1
@@ -116,9 +114,7 @@ const handleDataFromDevice = async (req, res) => {
     }
 };
 
-module.exports = {
-    handleDataFromDevice
-};
+module.exports = { handleDataFromDevice };
 
 
 /*
@@ -135,3 +131,26 @@ switch (number_plate) {
         break;
 }
 */
+
+/*
+    socket.on('requestHistoricalData', async ({ start, end, tanker }) => {
+        let interval = 'second';
+        const difference = new Date(end) - new Date(start);
+
+        if (difference > 7 * 24 * 60 * 60 * 1000) { // Over a week
+            interval = 'day';
+        } else if (difference > 24 * 60 * 60 * 1000) { // Over a day
+            interval = 'hour';
+        }
+
+        const res = await client.query(`
+    SELECT date_trunc('${interval}', timestamp) AS time,
+           AVG(value) as avg_value
+    FROM your_data_table
+    WHERE timestamp BETWEEN $1 AND $2
+    GROUP BY time
+    ORDER BY time`, [start, end]);
+
+        socket.emit('historicalData', res.rows);
+    });
+ */

@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-    entry: './src/JavaScript/index.js', // Entry point where Webpack starts bundling
+    entry: './src/JavaScript/graphs_maps/main.js', // Entry point where Webpack starts bundling
     output: {
         filename: 'bundle.js', // The output file after bundling
         path: path.resolve(__dirname, 'src/dist'), // Output directory

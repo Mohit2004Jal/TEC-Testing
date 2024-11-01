@@ -3,9 +3,8 @@ const client = require("../service/db");
 const get_data_for_widgets = async (req, res) => {
 
     const selectedTanker = req.body.tanker;
-
     try {
-        // Query to getn fuel level and latest location of the selected tanker
+        // Query to get fuel level and latest location of the selected tanker
         const query = `
         SELECT
             td.fuel_level,
@@ -15,7 +14,7 @@ const get_data_for_widgets = async (req, res) => {
             ti.factor
         FROM
             tanker_info ti
-        JOIN
+        LEFT JOIN
             tanker_data td ON ti.tanker_id = td.tanker_id
         WHERE
             ti.number_plate = $1

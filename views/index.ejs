@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBR | Widgets</title>
+    <link rel="shortcut icon" href="/Images/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="/CSS/output.css">
+    <!-- Load map CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+        integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body class="bg-gray-900">
+    <%- include('includes/navbar.ejs') %>
+        <main class="flex flex-col gap-5 py-10">
+            <% if (locals.names) { %>
+                <div class="flex flex-col items-center justify-center gap-5 px-10">
+                    <label for="tankers" class="block mb-2 text-sm font-medium text-white text-center">
+                        Choose a tanker
+                    </label>
+                    <select name="tankers" id="tankers"
+                        class="border text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-[90vw] md:w-96 p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white">
+                        <option value="none" selected disabled hidden>Select a Tanker</option>
+                        <% names.forEach(name=> { %>
+                            <option value=<%=name.number_plate%>><%=name.number_plate%>
+                            </option>
+                            <% }) %>
+                    </select>
+                    <button
+                        class="rounded-md bg-blue-600 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-blue-700 focus:shadow-none active:bg-blue-700 hover:bg-blue-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none ml-2"
+                        type="button" id="select">
+                        Select
+                    </button>
+                </div>
+                <% } %>
+                    <div class="bg-white w-[90vw] mx-auto h-[60vh] hidden widget">
+                        <canvas id="myChart" aria-label="Graph for fuel" role="img">
+                            <p>Your browser does not support graphs</p>
+                        </canvas>
+                    </div>
+                    <div class="mx-auto sm:h-screen h-[50vh] w-[90vw] hidden widget">
+                        <div id="map" style="width: 100%; height: 100%;"></div>
+                    </div>
+        </main>
+</body>
+<!-- 1. Load socket client -->
+<script src="/socket.io/socket.io.js"></script>
+<!-- 1. Load Leaflet library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 1. Load Chart.js core library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js" crossorigin="anonymous"></script>
+<!-- 2. Load Luxon library for date manipulation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/1.27.0/luxon.min.js" crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+<!-- 3. Load Chart.js Luxon adapter -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"
+    crossorigin="anonymous"></script>
+<!-- 4. Load Chart.js Streaming Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"
+    crossorigin="anonymous"></script>
+<!-- 5. Load Hammer.js (dependency for zooming) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+<!-- 6. Load Chart.js Zoom Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.0.1/chartjs-plugin-zoom.min.js"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+<script src="/dist/bundle.js"></script>
+
+
+</html>
