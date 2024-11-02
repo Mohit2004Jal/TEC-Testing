@@ -22,23 +22,23 @@ async function updateTankerInfo(number_plate, updateFields) {
 }
 
 // Helper function to get the location name
-async function handleLocation(number_plate, { latitude, longitude }) {
+async function handleLocation({ latitude, longitude }) {
     const location = await getLocationName({ latitude, longitude });
     return location || "Location not found";
 }
 
 // Helper function to find a nearby company within a certain distance
 function findNearbyCompany(latitude, longitude) {
-    for (const [coords, name] of Object.entries(companies)) {
-        const [companyLat, companyLong] = coords.split('-').map(Number);
-
-        if (is_point_near_target_location({ latitude, longitude }, { latitude: companyLat, longitude: companyLong })) {
-            return name;
-        }
+    for (let key in companies) {
+        const value = companies[key];
+        const [complat, complon] = key.split("-")
+        const isNearby = is_point_near_target_location({ latitude, longitude }, { latitude: complat, longitude: complon })
+        if (isNearby) return value
     }
-
-    return null;
+    return false;
 }
+
+
 
 
 // Main function to analyze fuel data and send alerts
@@ -57,7 +57,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
 
         const nearbyCompany = findNearbyCompany(latitude, longitude);
 
-        const location = await handleLocation(number_plate, { latitude, longitude });
+        const location = await handleLocation({ latitude, longitude });
         const message = `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} is rising at ${location}.${nearbyCompany ? ` Near ${nearbyCompany}.` : ''}`;
         await send_Email_Alert("Fuel Increase Detected", message);
         await updateTankerInfo(number_plate, { isrising: true, isleaking: false, isdraining: false, isstable: false });

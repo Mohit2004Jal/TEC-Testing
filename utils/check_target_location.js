@@ -1,5 +1,5 @@
 const target_Location = { latitude: 30.886188, longitude: 75.929028 };
-const MAX_VARIATION_DISTANCE = 50; // in meters
+const MAX_VARIATION_DISTANCE = 100; // in meters
 
 function calculate_distance_between_two_coordinates(coord1, coord2) {
     const toRad = (x) => (x * Math.PI) / 180;
