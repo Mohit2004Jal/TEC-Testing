@@ -92,7 +92,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
     }
     else if (trend === 0 && !alertStatus.stable) {
         stableCount++;
-        if (stableCount > 20) {
+        if (stableCount > 40) {
             stableCount = 0;
             alertStatus.stable = true;
             alertStatus.draining = alertStatus.rising = alertStatus.leaking = false;
