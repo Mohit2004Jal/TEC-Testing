@@ -58,7 +58,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         const nearbyCompany = findNearbyCompany(latitude, longitude);
 
         const location = await handleLocation({ latitude, longitude });
-        const message = `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} is rising at ${location}.${nearbyCompany ? ` Near ${nearbyCompany}.` : ''}`;
+        const message = `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} is rising at ${location}.${nearbyCompany ? ` Near ${nearbyCompany}.` : ''} with coordinates (${latitude}, ${longitude})`;
         await send_Email_Alert("Fuel Increase Detected", message);
         await updateTankerInfo(number_plate, { isrising: true, isleaking: false, isdraining: false, isstable: false });
 
@@ -72,7 +72,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         stableCount = 0;
 
         const location = await handleLocation({ latitude, longitude });
-        await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} with coordinates ${latitude,longitude} far from the target location.`);
+        await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} with coordinates (${latitude}, ${longitude}) far from the target location.`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: true, isdraining: false, isstable: false });
 
         // Draining fuel level logic
@@ -85,7 +85,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         stableCount = 0;
 
         const location = await handleLocation({ latitude, longitude });
-        await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location} with coordinates ${latitude,longitude}.`);
+        await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location} with coordinates (${latitude}, ${longitude}).`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: false, isdraining: true, isstable: false });
 
         // Stable fuel level logic
