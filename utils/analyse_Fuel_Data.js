@@ -71,8 +71,8 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         alertStatus.rising = alertStatus.draining = alertStatus.stable = false;
         stableCount = 0;
 
-        const location = await handleLocation(number_plate, { latitude, longitude });
-        await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} far from the target location.`);
+        const location = await handleLocation({ latitude, longitude });
+        await send_Email_Alert("Fuel Leak Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} leaking at ${location} with coordinates ${latitude,longitude} far from the target location.`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: true, isdraining: false, isstable: false });
 
         // Draining fuel level logic
@@ -84,8 +84,8 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData) {
         alertStatus.rising = alertStatus.leaking = alertStatus.stable = false;
         stableCount = 0;
 
-        const location = await handleLocation(number_plate, { latitude, longitude });
-        await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location}.`);
+        const location = await handleLocation({ latitude, longitude });
+        await send_Email_Alert("Fuel Drain Detected", `Device ${number_plate}: Fuel level at ${fuelDataArray[0]} draining at ${location} with coordinates ${latitude,longitude}.`);
         await updateTankerInfo(number_plate, { isrising: false, isleaking: false, isdraining: true, isstable: false });
 
         // Stable fuel level logic
