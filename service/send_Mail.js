@@ -14,7 +14,7 @@ const emailTransporter = nodemailer.createTransport({
 async function send_Email_Alert(subject, message) {
     const mailOptions = {
         from: process.env.EMAIL, 
-        to: "davarrajni@gmail.com", 
+        to: "gmplant@jbrtechnologies.org", 
         subject,
         text: message,
     };
