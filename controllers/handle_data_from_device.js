@@ -16,10 +16,11 @@ function emitToFrontend(req, data) {
 }
 // Insert fuel data into the database for the specified tanker
 async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
+    const volume = -0.000005744628532 * Math.pow(fuel, 3) + 0.009927196796148 * Math.pow(fuel, 2) + 4.150072958151474 * fuel + -162.312544323069432
     try {
         await client.query(
-            'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude) VALUES ($1, $2, $3, $4)',
-            [tankerId, fuel, latitude, longitude]
+            'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude, volume_level) VALUES ($1, $2, $3, $4, $5)',
+            [tankerId, fuel, latitude, longitude, volume]
         );
         return true;
     }
