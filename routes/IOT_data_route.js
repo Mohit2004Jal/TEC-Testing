@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
 
-const { handleDataFromDevice } = require("../controllers/handle_data_from_device")
+const { handleDataFromDevice } = require("../controllers/Data_from_controller")
 const { get_data_for_widgets } = require("../controllers/send_widget_data")
 
 const { validate_tanker_data } = require("../middleware/validate_post_data")

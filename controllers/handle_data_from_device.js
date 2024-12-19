@@ -1,8 +1,6 @@
 const { analyzeFuelData } = require("../utils/analyse_Fuel_Data");
 const client = require("../service/db");
-
-// Memory store for tracking current state and data of each tanker
-const allCurrentDevices = {};
+const redis = require("../service/redis")
 
 // Emit data to frontend via socket if available
 function emitToFrontend(req, data) {
@@ -15,11 +13,10 @@ function emitToFrontend(req, data) {
     catch (err) { console.error(`[${new Date().toLocaleString("en-GB")}] Error emitting data for tanker ${numberPlate}: ${err.message}`); }
 }
 // Insert fuel data into the database for the specified tanker
-async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
+async function insertFuelData({ tanker_id, fuel, latitude, longitude }) {
     try {
         await client.query(
-            'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude) VALUES ($1, $2, $3, $4)',
-            [tankerId, fuel, latitude, longitude]
+            'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude) VALUES ($1, $2, $3, $4)', [tanker_id, fuel, latitude, longitude]
         );
         return true;
     }
@@ -32,36 +29,48 @@ async function insertFuelData({ tankerId, fuel, latitude, longitude }) {
 async function getTankerData(numberPlate, requiredLength) {
     try {
         const tankerQuery = `
-            SELECT td.fuel_level, td.latitude, td.longitude,
-                ti.number_plate, ti.tanker_name, ti.isrising, ti.isdraining, 
-                ti.isleaking, ti.tanker_id, ti.isstable
-            FROM tanker_info ti
-            LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
-            WHERE ti.number_plate = $1
-            ORDER BY td.timestamp DESC 
-            LIMIT $2`;
+            SELECT
+                td.fuel_level,
+                td.latitude,
+                td.longitude,
+                ti.tanker_id,
+                ti.number_plate,
+                ti.tanker_name,
+                ti.status,
+                ti.factor
+            FROM
+                tanker_info ti
+                LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
+            WHERE
+                ti.number_plate = $1
+            ORDER BY
+                td.timestamp DESC
+            LIMIT
+                $2
+            `;
         const result = await client.query(tankerQuery, [numberPlate, requiredLength]);
 
         if (result.rows.length === 0) {
             const insertResult = await client.query(
-                'INSERT INTO tanker_info (number_plate, tanker_name) VALUES ($1, $2) RETURNING tanker_name, tanker_id',
-                [numberPlate, numberPlate]
+                'INSERT INTO tanker_info (number_plate, tanker_name) VALUES ($1, $2) RETURNING tanker_name, tanker_id', [numberPlate, numberPlate]
             );
             const newDevice = insertResult.rows[0];
             return {
-                fuelDataArray: new Array(requiredLength).fill(0),
-                alertStatus: { rising: false, leaking: false, draining: false, stable: false },
-                name: newDevice.tanker_name,
-                tankerId: newDevice.tanker_id,
+                fuelDataArray: [],
+                status: 'stable',
+                tanker_name: newDevice.tanker_name,
+                tanker_id: newDevice.tanker_id,
+                factor: 100.00
             };
         }
         else {
-            const { tanker_id, tanker_name, isrising, isdraining, isleaking, isstable } = result.rows[0];
+            const { tanker_id, tanker_name, status, factor } = result.rows[0];
             return {
-                fuelDataArray: result.rows.map(data => data.fuel_level),
-                alertStatus: { rising: isrising, leaking: isleaking, draining: isdraining, stable: isstable },
-                name: tanker_name,
-                tankerId: tanker_id,
+                fuelDataArray: result.rows.map(data => Number(data.fuel_level)),
+                status: status,
+                tanker_name: tanker_name,
+                tanker_id: tanker_id,
+                factor: Number(factor)
             };
         }
     }
@@ -73,84 +82,41 @@ async function getTankerData(numberPlate, requiredLength) {
 
 // Main handler for incoming tanker data
 const handleDataFromDevice = async (req, res) => {
-    const REQUIRED_LENGTH = 20;
+    const REQUIRED_LENGTH = 10;
     const numberPlate = req.params.id;
-    let { fuel, longitude, latitude } = req.body;
+    // const numberPlate = req.header("Number-Plate");
+    const { longitude, latitude } = req.body;
+    let { fuel } = req.body
+    let deviceData = {}
 
     try {
         emitToFrontend(req, { fuel, numberPlate, longitude, latitude });
-        // Multiplication Factor based on number_plate
-        switch (numberPlate) {
-            case "busb":
-                fuel *= 137;
-                break;
-            case "busc":
-                fuel *= 187.6;
-                break;
-            default:
-                break;
+        const dataString = await redis.call("JSON.GET", `allCurrentDevices:${numberPlate}`, ".");
+
+        if (dataString) {
+            const data = JSON.parse(dataString)
+            deviceData = data
+        } else {
+            deviceData = await getTankerData(numberPlate, REQUIRED_LENGTH)
         }
+        fuel = fuel * deviceData.factor
         console.log(`Received data for tanker ${numberPlate}: `, { fuel, longitude, latitude });
-
-        if (!allCurrentDevices[numberPlate]) {
-            allCurrentDevices[numberPlate] = await getTankerData(numberPlate, REQUIRED_LENGTH);
-        }
-
-        const deviceData = allCurrentDevices[numberPlate];
 
         deviceData.fuelDataArray.push(fuel);
         if (deviceData.fuelDataArray.length > REQUIRED_LENGTH) deviceData.fuelDataArray.shift();
+        if (deviceData.fuelDataArray.length == REQUIRED_LENGTH) await analyzeFuelData(numberPlate, longitude, latitude, deviceData, req.app.get('socket'));
+        try {
+            await redis.call("JSON.SET", `allCurrentDevices:${numberPlate}`, ".", JSON.stringify(deviceData));
+        } catch (error) { console.error(`[${new Date().toLocaleString("en-GB")}] Error saving data for tanker ${numberPlate} in redis: ${error.message}`) }
 
-        const isInserted = await insertFuelData({ tankerId: deviceData.tankerId, fuel, latitude, longitude });
+        const isInserted = await insertFuelData({ tanker_id: deviceData.tanker_id, fuel, latitude, longitude });
         if (!isInserted) return res.status(500).json({ error: "Failed to save fuel data." });
 
-        await analyzeFuelData(numberPlate, longitude, latitude, allCurrentDevices);
-
         res.status(200).json({ message: `Fuel data received successfully for tanker ${numberPlate}` });
-    }
-    catch (error) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Error handling data for tanker ${numberPlate}: ${error.message}`);
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error handling data for tanker ${numberPlate}: ${error.message.response}`);
         res.status(500).json({ error: "Internal server error." });
     }
 };
 
 module.exports = { handleDataFromDevice };
-
-
-/*
-SHIFTING TO FRONTEND
-// Multiplication Factor based on number_plate
-switch (number_plate) {
-    case "busb":
-        fuel *= 137;
-        break;
-    case "busc":
-        fuel *= 187.6;
-        break;
-    default:
-        break;
-}
-*/
-
-/*
-    socket.on('requestHistoricalData', async ({ start, end, tanker }) => {
-        let interval = 'second';
-        const difference = new Date(end) - new Date(start);
-
-        if (difference > 7 * 24 * 60 * 60 * 1000) { // Over a week
-            interval = 'day';
-        } else if (difference > 24 * 60 * 60 * 1000) { // Over a day
-            interval = 'hour';
-        }
-
-        const res = await client.query(`
-    SELECT date_trunc('${interval}', timestamp) AS time,
-           AVG(value) as avg_value
-    FROM your_data_table
-    WHERE timestamp BETWEEN $1 AND $2
-    GROUP BY time
-    ORDER BY time`, [start, end]);
-
-        socket.emit('historicalData', res.rows);
-    });
- */

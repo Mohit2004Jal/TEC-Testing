@@ -10,13 +10,13 @@
 /* global Chart, ChartStreaming, ChartZoom*/
 Chart.register(ChartStreaming, ChartZoom, 'chartjs-adapter-luxon');
 var visibleData = [];
-// const dataCache = [];
 
 // Factor to multiply data with
 var local_factor = 1;
 //Chart instance and its styling
 var chart;
-var graph_color = 'black';
+var grid_color = 'rgba(0, 0, 0, 0.1)';
+var graph_color = 'rgb(0, 0, 255)';
 var canvas = document.querySelector('canvas');
 function generate_grid(color, lineWidth) {
   return {
@@ -49,8 +49,8 @@ function create_graph(selectedTanker) {
       label: selectedTanker,
       data: visibleData,
       borderColor: graph_color,
-      lineTension: 0.1,
-      borderWidth: 1
+      lineTension: 0.5,
+      borderWidth: 2
     }]
   };
   var options = {
@@ -59,7 +59,7 @@ function create_graph(selectedTanker) {
     maintainAspectRatio: false,
     scales: {
       x: {
-        grid: generate_grid(graph_color, 1),
+        grid: generate_grid(grid_color, 1),
         title: generate_labels('Time', 14, 'bold', graph_color),
         type: 'realtime',
         time: {
@@ -71,8 +71,9 @@ function create_graph(selectedTanker) {
         }
       },
       y: {
-        grid: generate_grid(graph_color, 1),
-        title: generate_labels('Fuel', 14, 'bold', graph_color)
+        grid: generate_grid(grid_color, 1),
+        title: generate_labels('Fuel', 14, 'bold', graph_color),
+        beginAtZero: true
       }
     },
     plugins: {
@@ -83,11 +84,12 @@ function create_graph(selectedTanker) {
           },
           pinch: {
             enabled: true
-          }
+          },
+          mode: 'xy'
         },
         pan: {
           enabled: true,
-          onPanComplete: function onPanComplete() {}
+          mode: 'xy'
         }
       }
     }
@@ -116,7 +118,7 @@ function update_graph_data(values) {
   local_factor = ((_values$ = values[0]) === null || _values$ === void 0 ? void 0 : _values$.factor) || 1;
   values.forEach(function (row) {
     return visibleData.unshift({
-      x: new Date(row.timestamp).getTime(),
+      x: new Date(row.timestamp),
       y: row.fuel_level
     });
   });
@@ -170,6 +172,34 @@ module.exports = {
   create_map: create_map
 };
 
+/***/ }),
+
+/***/ "./src/JavaScript/graphs_maps/popup.js":
+/*!*********************************************!*\
+  !*** ./src/JavaScript/graphs_maps/popup.js ***!
+  \*********************************************/
+/***/ ((module) => {
+
+var alert_popup_container = document.querySelector(".modal");
+var alert_popup_close = document.querySelector(".modal .close");
+var alert_popup_heading = document.querySelector(".modal .status_alert_heading");
+var alert_popup_text = document.querySelector(".modal .status_text");
+function show_popup(status) {
+  alert_popup_container.classList.remove('hidden');
+  alert_popup_heading.textContent = status;
+  alert_popup_text.textContent = "".concat(status, " Alert!");
+  // Auto-hide the popup after 10 seconds
+  setTimeout(function () {
+    alert_popup_container.classList.add('hidden');
+  }, 10000);
+}
+alert_popup_close.addEventListener('click', function () {
+  alert_popup_container.classList.add('hidden');
+});
+module.exports = {
+  show_popup: show_popup
+};
+
 /***/ })
 
 /******/ 	});
@@ -210,6 +240,7 @@ function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 var select_Button = document.getElementById("select");
 var select_Tanker = document.getElementById("tankers");
+var select_Range = document.getElementById("range");
 var selectedTanker = "";
 var _require = __webpack_require__(/*! ./graph.js */ "./src/JavaScript/graphs_maps/graph.js"),
   create_graph = _require.create_graph,
@@ -218,6 +249,8 @@ var _require = __webpack_require__(/*! ./graph.js */ "./src/JavaScript/graphs_ma
 var _require2 = __webpack_require__(/*! ./map.js */ "./src/JavaScript/graphs_maps/map.js"),
   update_map = _require2.update_map,
   create_map = _require2.create_map;
+var _require3 = __webpack_require__(/*! ./popup.js */ "./src/JavaScript/graphs_maps/popup.js"),
+  show_popup = _require3.show_popup;
 
 /* global io */
 var socket = io.connect();
@@ -225,38 +258,40 @@ var socket = io.connect();
 // Sending a POST request to server to get data
 function initializeTankerSelection() {
   select_Button.addEventListener("click", /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-    var response, values;
+    var range, response, values;
     return _regeneratorRuntime().wrap(function _callee$(_context) {
       while (1) switch (_context.prev = _context.next) {
         case 0:
           selectedTanker = select_Tanker.value;
+          range = select_Range.value;
           if (!(selectedTanker === "none")) {
-            _context.next = 4;
+            _context.next = 5;
             break;
           }
           alert("Please select a tanker.");
           return _context.abrupt("return");
-        case 4:
-          _context.prev = 4;
-          _context.next = 7;
+        case 5:
+          _context.prev = 5;
+          _context.next = 8;
           return fetch('/api/graph/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              tanker: selectedTanker
+              tanker: selectedTanker,
+              range: range
             })
           });
-        case 7:
+        case 8:
           response = _context.sent;
           if (!response.ok) {
-            _context.next = 18;
+            _context.next = 19;
             break;
           }
-          _context.next = 11;
+          _context.next = 12;
           return response.json();
-        case 11:
+        case 12:
           values = _context.sent;
           document.querySelectorAll('.widget').forEach(function (widget) {
             widget.classList.remove('hidden');
@@ -264,22 +299,22 @@ function initializeTankerSelection() {
           create_map(values[0]);
           update_graph_data(values);
           create_graph(selectedTanker);
-          _context.next = 19;
+          _context.next = 20;
           break;
-        case 18:
-          console.error("Error fetching graph data:", response.status);
         case 19:
-          _context.next = 24;
+          console.error("Error fetching graph data:", response.status);
+        case 20:
+          _context.next = 25;
           break;
-        case 21:
-          _context.prev = 21;
-          _context.t0 = _context["catch"](4);
+        case 22:
+          _context.prev = 22;
+          _context.t0 = _context["catch"](5);
           console.error("Error during API call:", _context.t0);
-        case 24:
+        case 25:
         case "end":
           return _context.stop();
       }
-    }, _callee, null, [[4, 21]]);
+    }, _callee, null, [[5, 22]]);
   })));
 }
 
@@ -297,6 +332,10 @@ socket.on("Widget-Update", function (_ref2) {
       numberPlate: numberPlate
     });
   }
+});
+socket.on("Popup-Alert", function (_ref3) {
+  var status = _ref3.status;
+  show_popup(status);
 });
 initializeTankerSelection();
 })();

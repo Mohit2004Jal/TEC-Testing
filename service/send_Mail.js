@@ -11,16 +11,16 @@ const emailTransporter = nodemailer.createTransport({
     },
 });
 
-async function send_Email_Alert(subject, message) {
+function send_Email_Alert(subject, message) {
     const mailOptions = {
         from: process.env.EMAIL, 
-        to: "gmplant@jbrtechnologies.org", 
+        to: "davarrajni@gmail.com", 
         subject,
         text: message,
     };
 
     try {
-        await emailTransporter.sendMail(mailOptions);
+        emailTransporter.sendMail(mailOptions);
         console.log(`\x1b[42m Email Sent: ${subject} \x1b[0m`);
     }
     catch (error) {

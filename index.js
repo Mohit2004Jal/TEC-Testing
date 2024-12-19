@@ -20,22 +20,22 @@ const path = require("path")
 app.set("view engine", "ejs")
 app.set("views", path.resolve("./views"))
 app.use(express.static(path.join(__dirname, 'src')))
-
 //Socket.io
 const socket = require("socket.io")
 const io = new socket.Server(server)
-io.on("connection", (socket) => {
-    app.set("socket", socket)
-})
+io.on("connection", (socket) => { app.set("socket", socket) })
 
 //Different Routes
-const IOT_API_Data_Route = require("./routes/IOT_data_route")
-app.use("/api", IOT_API_Data_Route)
-const Static_Router = require("./routes/frontend_route.js")
-app.use("/", Static_Router)
+const Data_from_tanker_router = require("./routes/IOT_data_route.js")
+app.use("/api", Data_from_tanker_router)
+const Frontend_Router = require("./routes/frontend_route.js")
+app.use("/", Frontend_Router)
 
 //Connecting the Database
 const client = require("./service/db.js")
+const redis = require("./service/redis.js")
+redis.on('connect', () => { console.log('Connected to Redis') });
+redis.on('error', (err) => { console.error('Redis client encountered an error:', err) });
 client.connect()
     .then(() => console.log('Connected to PostgreSQL'))
     .catch(err => console.error('Connection error', err.stack));
