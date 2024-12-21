@@ -3,17 +3,9 @@ const { Get_Fuel_Data_Query, Insert_Tanker_Info_Query } = require("../Database/D
 // Initialize or retrieve tanker data from the database
 async function getTankerData(numberPlate, requiredLength) {
     try {
-        console.log("before result");
-
         const result = await Get_Fuel_Data_Query(numberPlate, requiredLength);
-        console.log("after result");
-
         if (result.rows.length === 0) {
-            console.log("before insertion");
-
             const insertResult = await Insert_Tanker_Info_Query(numberPlate);
-            console.log("after insertion");
-
             const newDevice = insertResult.rows[0];
             return {
                 fuelDataArray: [],
