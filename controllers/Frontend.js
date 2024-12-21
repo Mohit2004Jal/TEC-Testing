@@ -1,32 +1,29 @@
-const { get_all_ids } = require("../utils/fetch_id.js")
-const client = require("../service/db.js")
 const redis = require("../service/redis.js")
+const { Get_All_Ids_Query, Get_Tanker_Info_Query, Update_Tanker_Info_Query, Get_Tanker_Data_Widget_Query } = require("../Database/Frontend.js")
 const { JWTGeneration } = require("../service/userAutehntication.js")
 require("dotenv").config()
 
 const displayGraph = async (req, res) => {
     try {
-        const number_plates = await get_all_ids();
+        const number_plates = await Get_All_Ids_Query();
         res.status(200).render("index.ejs", { names: number_plates });
     }
     catch (error) {
-        console.error(error);
-        res.status(500).send("Error fetching data");
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error fetching number plate: ${error.message}`);
     }
 };
-
-const displayLogin = (req, res) => { res.render("login") };
-
+const displayLogin = (req, res) => {
+    res.render("login")
+};
 const displayPanel = async (req, res) => {
     try {
-        const { rows } = await client.query('SELECT number_plate, factor, tanker_name FROM tanker_info ORDER BY tanker_name');
-        return res.render("admin", {
-            configs: rows
-        })
+        const { rows } = Get_Tanker_Info_Query()
+        return res.render("admin", { configs: rows })
     }
-    catch (err) { console.error(`[${new Date().toLocaleString("en-GB")}] Error geting data for admin panel: ${err.message}`) }
+    catch (err) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error geting data for admin panel: ${err.message}`)
+    }
 };
-
 const validateUser = (req, res) => {
     const options = {
         httpOnly: true,
@@ -39,15 +36,11 @@ const validateUser = (req, res) => {
     res.cookie("token", token, options)
     res.redirect('/admin')
 };
-
 const updateTankerData = async (req, res) => {
     const { number_plate, columns } = req.body;
     const { tanker_name, factor } = columns;
     try {
-        await client.query(
-            'UPDATE tanker_info SET tanker_name = $1, factor = $2 WHERE number_plate = $3',
-            [tanker_name, factor, number_plate]
-        );
+        Update_Tanker_Info_Query();
         const pipeline = redis.pipeline();
         pipeline.call("JSON.SET", `allCurrentDevices:${number_plate}`, ".factor", factor);
         pipeline.call("JSON.SET", `allCurrentDevices:${number_plate}`, ".tanker_name", tanker_name);
@@ -57,6 +50,16 @@ const updateTankerData = async (req, res) => {
         console.error(`[${new Date().toLocaleString("en-GB")}] Error updating data: ${err.message}`);
     }
 };
+const GetWidgetData = async (req, res) => {
+    const selectedTanker = req.body.tanker;
+    const range = req.body.range;
+    try {
+        const rows = Get_Tanker_Data_Widget_Query(range, selectedTanker)
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(`[${new Date().toLocaleString("en-GB")}] Error retrieving data for tanker ${selectedTanker}: ${error.message}`);
+        res.status(500).json({ error: "Internal server error while retrieving data." });
+    }
+}
 
-
-module.exports = { displayGraph, displayLogin, displayPanel, validateUser, updateTankerData };
+module.exports = { displayGraph, displayLogin, displayPanel, validateUser, updateTankerData, GetWidgetData };

@@ -1,6 +1,7 @@
-const { analyzeFuelData } = require("../utils/analyse_Fuel_Data");
-const client = require("../service/db");
 const redis = require("../service/redis")
+const { analyzeFuelData } = require("../utils/analyse_Fuel_Data");
+const { getTankerData } = require("../utils/handle_tanker_info_and_data.js");
+const { Insert_Fuel_Data_Query } = require("../Database/Data_from_device.js")
 
 // Emit data to frontend via socket if available
 function emitToFrontend(req, data) {
@@ -15,68 +16,12 @@ function emitToFrontend(req, data) {
 // Insert fuel data into the database for the specified tanker
 async function insertFuelData({ tanker_id, fuel, latitude, longitude }) {
     try {
-        await client.query(
-            'INSERT INTO tanker_data (tanker_id, fuel_level, latitude, longitude) VALUES ($1, $2, $3, $4)', [tanker_id, fuel, latitude, longitude]
-        );
+        await Insert_Fuel_Data_Query({ tanker_id, fuel, latitude, longitude })
         return true;
     }
     catch (err) {
         console.error(`[${new Date().toLocaleString("en-GB")}] Error inserting fuel data: ${err.message}`);
         return false;
-    }
-}
-// Initialize or retrieve tanker data from the database
-async function getTankerData(numberPlate, requiredLength) {
-    try {
-        const tankerQuery = `
-            SELECT
-                td.fuel_level,
-                td.latitude,
-                td.longitude,
-                ti.tanker_id,
-                ti.number_plate,
-                ti.tanker_name,
-                ti.status,
-                ti.factor
-            FROM
-                tanker_info ti
-                LEFT JOIN tanker_data td ON ti.tanker_id = td.tanker_id
-            WHERE
-                ti.number_plate = $1
-            ORDER BY
-                td.timestamp DESC
-            LIMIT
-                $2
-            `;
-        const result = await client.query(tankerQuery, [numberPlate, requiredLength]);
-
-        if (result.rows.length === 0) {
-            const insertResult = await client.query(
-                'INSERT INTO tanker_info (number_plate, tanker_name) VALUES ($1, $2) RETURNING tanker_name, tanker_id', [numberPlate, numberPlate]
-            );
-            const newDevice = insertResult.rows[0];
-            return {
-                fuelDataArray: [],
-                status: 'stable',
-                tanker_name: newDevice.tanker_name,
-                tanker_id: newDevice.tanker_id,
-                factor: 100.00
-            };
-        }
-        else {
-            const { tanker_id, tanker_name, status, factor } = result.rows[0];
-            return {
-                fuelDataArray: result.rows.map(data => Number(data.fuel_level)),
-                status: status,
-                tanker_name: tanker_name,
-                tanker_id: tanker_id,
-                factor: Number(factor)
-            };
-        }
-    }
-    catch (err) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Error fetching data for tanker ${numberPlate}: ${err.message}`);
-        throw new Error("Failed to initialize tanker data");
     }
 }
 
@@ -96,7 +41,8 @@ const handleDataFromDevice = async (req, res) => {
         if (dataString) {
             const data = JSON.parse(dataString)
             deviceData = data
-        } else {
+        }
+        else {
             deviceData = await getTankerData(numberPlate, REQUIRED_LENGTH)
         }
         fuel = fuel * deviceData.factor
@@ -107,7 +53,10 @@ const handleDataFromDevice = async (req, res) => {
         if (deviceData.fuelDataArray.length == REQUIRED_LENGTH) await analyzeFuelData(numberPlate, longitude, latitude, deviceData, req.app.get('socket'));
         try {
             await redis.call("JSON.SET", `allCurrentDevices:${numberPlate}`, ".", JSON.stringify(deviceData));
-        } catch (error) { console.error(`[${new Date().toLocaleString("en-GB")}] Error saving data for tanker ${numberPlate} in redis: ${error.message}`) }
+        }
+        catch (error) {
+            console.error(`[${new Date().toLocaleString("en-GB")}] Error saving data for tanker ${numberPlate} in redis: ${error.message}`)
+        }
 
         const isInserted = await insertFuelData({ tanker_id: deviceData.tanker_id, fuel, latitude, longitude });
         if (!isInserted) return res.status(500).json({ error: "Failed to save fuel data." });
@@ -118,5 +67,4 @@ const handleDataFromDevice = async (req, res) => {
         res.status(500).json({ error: "Internal server error." });
     }
 };
-
 module.exports = { handleDataFromDevice };

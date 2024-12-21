@@ -11,10 +11,10 @@ const emailTransporter = nodemailer.createTransport({
     },
 });
 
-function send_Email_Alert(subject, message) {
+function send_Email_Alert(subject, message, retryCount = 3) {
     const mailOptions = {
-        from: process.env.EMAIL, 
-        to: "davarrajni@gmail.com", 
+        from: process.env.EMAIL,
+        to: "davarrajni@gmail.com",
         subject,
         text: message,
     };
@@ -25,6 +25,12 @@ function send_Email_Alert(subject, message) {
     }
     catch (error) {
         console.error(`[${new Date().toLocaleString("en-GB")}] Error sending email: ${error.message}`);
+        if (retryCount > 0) {
+            console.log(`Retrying... Attempts left: ${retryCount}`);
+            setTimeout(() => send_Email_Alert(subject, message, retryCount - 1), 5000); // Retry after 5 seconds
+        } else {
+            console.error('Failed to send email:', error);
+        }
     }
 }
 

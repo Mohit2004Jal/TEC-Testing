@@ -21,7 +21,7 @@ function initializeTankerSelection() {
         }
 
         try {
-            const response = await fetch('/api/graph/', {
+            const response = await fetch('/widgets/data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tanker: selectedTanker, range: range })

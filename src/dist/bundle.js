@@ -273,7 +273,7 @@ function initializeTankerSelection() {
         case 5:
           _context.prev = 5;
           _context.next = 8;
-          return fetch('/api/graph/', {
+          return fetch('/widgets/data', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

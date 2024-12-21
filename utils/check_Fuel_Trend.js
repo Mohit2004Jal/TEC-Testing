@@ -18,17 +18,9 @@ function get_Fuel_Trend(data) {
     const decreasingPercentage = (decreasingCount / (size - 1)) * 100;
 
     // Determine the trend based on threshold (75%)
-    if (increasingPercentage >= 80) {
-        return 1;
-    }
-    else if (decreasingPercentage >= 80) {
-        return -1;
-    }
-    else {
-        return 0;
-    }
+    if (increasingPercentage >= 80) return 1
+    else if (decreasingPercentage >= 80) return -1
+    else return 0
 }
 
-module.exports = {
-    get_Fuel_Trend
-};
+module.exports = { get_Fuel_Trend };

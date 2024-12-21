@@ -25,6 +25,4 @@ function is_point_near_target_location(currentLocation) {
     return distance <= MAX_VARIATION_DISTANCE;
 }
 
-module.exports = {
-    is_point_near_target_location,
-};
+module.exports = {is_point_near_target_location};

@@ -1,18 +1,10 @@
-const { send_Email_Alert } = require("../service/send_Mail");
-const { getLocationName } = require("../service/get_Location_from_coordinates");
-const client = require("../service/db");
 const { get_Fuel_Trend } = require("./check_Fuel_Trend");
 const { is_point_near_target_location } = require("./check_target_location");
+const { send_Email_Alert } = require("../service/send_Mail");
+const { getLocationName } = require("../service/get_Location_from_coordinates");
+const { Update_Tanker_Info_Query } = require("../Database/Data_from_device.js")
 
 let stableCount = 0;
-function updateTankerInfo(number_plate, status) {
-    const query = 'UPDATE tanker_info SET status = $1 WHERE number_plate = $2';
-    try {
-        client.query(query, [status, number_plate]);
-    } catch (error) {
-        console.error(`[${new Date().toLocaleString("en-GB")}] Error updating status for ${number_plate}: ${error.message}`);
-    }
-}
 async function handleLocation({ latitude, longitude }) {
     try {
         const location = await getLocationName({ latitude, longitude });
@@ -42,7 +34,11 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData, so
         const message = `Device ${tanker_name}: Fuel level at ${fuelDataArray[0]} is ${newStatus}ing at ${location} with coordinates (${latitude}, ${longitude})`;
 
         send_Email_Alert(messageType, message);
-        updateTankerInfo(number_plate, status);
+        try {
+            Update_Tanker_Info_Query(newStatus, number_plate)
+        } catch (error) {
+            console.error(`[${new Date().toLocaleString("en-GB")}] Error updating status for ${number_plate}: ${error.message}`);
+        }
     }
     function send_alert_to_frontend(status) {
         if (socket) socket.emit("Popup-Alert", { status });
