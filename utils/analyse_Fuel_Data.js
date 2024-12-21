@@ -1,6 +1,6 @@
 const { get_Fuel_Trend } = require("./check_Fuel_Trend");
 const { is_point_near_target_location } = require("./check_target_location");
-const { send_Email_Alert } = require("../service/send_Mail");
+// const { send_Email_Alert } = require("../service/send_Mail");
 const { getLocationName } = require("../service/get_Location_from_coordinates");
 const { Update_Tanker_Info_Query } = require("../Database/Data_from_device.js")
 
@@ -33,7 +33,7 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData, so
         const location = await handleLocation({ latitude, longitude });
         const message = `Device ${tanker_name}: Fuel level at ${fuelDataArray[0]} is ${newStatus}ing at ${location} with coordinates (${latitude}, ${longitude})`;
 
-        send_Email_Alert(messageType, message);
+        // send_Email_Alert(messageType, message);b
         try {
             Update_Tanker_Info_Query(newStatus, number_plate)
         } catch (error) {
@@ -46,15 +46,19 @@ async function analyzeFuelData(number_plate, longitude, latitude, deviceData, so
     }
 
     if (trend > 0 && status !== 'rise') {
+        console.log(`\x1b[41m Fuel is rising \x1b[0m`);
         await handleAlert('rise', "Fuel Increase Detected");
         return;
     } else if (trend < 0 && !withinRadius && status !== 'leak') {
+        console.log(`\x1b[41m Fuel is leaking \x1b[0m`);
         await handleAlert('leak', "Fuel Leak Detected");
         return;
     } else if (trend < 0 && withinRadius && status !== 'drain') {
+        console.log(`\x1b[41m Fuel is draining \x1b[0m`);
         await handleAlert('drain', "Fuel Drain Detected");
         return;
     } else if (trend == 0 && stableCount >= 10 && status !== 'stable') {
+        console.log(`\x1b[41m Fuel is stable \x1b[0m`);
         await handleAlert('stable', "Fuel is Stable");
         stableCount = 0;
         return;
